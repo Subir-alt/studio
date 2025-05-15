@@ -1,7 +1,8 @@
+
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useMemo, useEffect, useCallback, memo } from 'react';
+import Image from 'next/image'; // Not used, can be removed if AvatarImage handles all cases
 import { BookHeart, PlusCircle, Users, Search, Edit2, Trash2, MessageSquare, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
@@ -35,6 +36,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
+const displayName = (member: FamilyMember) => member.customName || member.realName;
+const avatarInitial = (member: FamilyMember) => displayName(member).substring(0, 1).toUpperCase();
+
 interface FamilyMemberFormProps {
   member?: FamilyMember;
   onSave: (member: FamilyMember) => void;
@@ -55,7 +59,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
       id: member?.id || uuidv4(),
       realName: realName.trim(),
       customName: customName.trim() || undefined,
-      avatarUrl: member?.avatarUrl || `https://picsum.photos/seed/${uuidv4()}/100/100`,
+      avatarUrl: member?.avatarUrl || `https://placehold.co/100x100.png`, // Updated placeholder
     });
   };
 
@@ -108,13 +112,13 @@ function DiaryNoteForm({ familyMember, onSave, onClose }: DiaryNoteFormProps) {
   return (
      <>
       <DialogHeader>
-        <DialogTitle>Add Note for {familyMember.customName || familyMember.realName}</DialogTitle>
+        <DialogTitle>Add Note for {displayName(familyMember)}</DialogTitle>
       </DialogHeader>
       <div className="grid gap-4 py-4">
         <Textarea 
           value={noteText} 
           onChange={(e) => setNoteText(e.target.value)} 
-          placeholder={`What did ${familyMember.customName || familyMember.realName} say or how do you feel?`}
+          placeholder={`What did ${displayName(familyMember)} say or how do you feel?`}
           rows={5}
         />
       </div>
@@ -125,6 +129,80 @@ function DiaryNoteForm({ familyMember, onSave, onClose }: DiaryNoteFormProps) {
     </>
   );
 }
+
+interface FamilyMemberDisplayCardProps {
+  member: FamilyMember;
+  onSelectMember: (member: FamilyMember) => void;
+  onEditMember: (member: FamilyMember) => void;
+  onDeleteMember: (memberId: string) => void;
+}
+
+const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, onDeleteMember }: FamilyMemberDisplayCardProps) => {
+  const handleCardClick = () => onSelectMember(member);
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEditMember(member);
+  };
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeleteMember(member.id);
+  };
+
+  return (
+    <Card 
+      className="cursor-pointer hover:shadow-xl transition-shadow duration-200 flex flex-col"
+      onClick={handleCardClick}
+      data-ai-hint="family member"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
+    >
+      <CardHeader className="items-center text-center">
+        <Avatar className="h-20 w-20 mb-2">
+          <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="person portrait" />
+          <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
+        </Avatar>
+        <CardTitle>{displayName(member)}</CardTitle>
+        <CardDescription>{member.realName}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow"></CardContent>
+      <CardFooter className="flex justify-end gap-2 pt-4 border-t">
+          <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`}>
+            <Edit2 className="h-4 w-4" />
+            <span className="sr-only">Edit</span>
+          </Button>
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={handleDeleteClick} aria-label={`Delete ${displayName(member)}`}>
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete</span>
+          </Button>
+      </CardFooter>
+    </Card>
+  );
+});
+FamilyMemberDisplayCard.displayName = 'FamilyMemberDisplayCard';
+
+interface DiaryNoteDisplayCardProps {
+  note: DiaryNote;
+  onDeleteNote: (noteId: string) => void;
+}
+
+const DiaryNoteDisplayCard = memo(({ note, onDeleteNote }: DiaryNoteDisplayCardProps) => {
+  return (
+    <Card className="shadow-md">
+      <CardContent className="p-4">
+        <p className="whitespace-pre-wrap break-words">{note.noteText}</p>
+        <div className="flex justify-between items-center mt-3 pt-3 border-t">
+            <p className="text-xs text-muted-foreground">
+            {format(new Date(note.createdAt), 'MMM d, yyyy HH:mm')}
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => onDeleteNote(note.id)} className="text-destructive hover:text-destructive">
+                Delete
+            </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+});
+DiaryNoteDisplayCard.displayName = 'DiaryNoteDisplayCard';
 
 
 export default function DiaryPage() {
@@ -140,7 +218,7 @@ export default function DiaryPage() {
 
   const { toast } = useToast();
 
-  const handleSaveMember = (member: FamilyMember) => {
+  const handleSaveMember = useCallback((member: FamilyMember) => {
     setFamilyMembers(prev => {
       const existing = prev.find(m => m.id === member.id);
       if (existing) {
@@ -151,27 +229,33 @@ export default function DiaryPage() {
     toast({ title: "Success!", description: `Family member ${member.realName} saved.` });
     setIsMemberFormOpen(false);
     setEditingMember(null);
-  };
+  }, [setFamilyMembers, toast, setIsMemberFormOpen, setEditingMember]);
 
-  const handleDeleteMember = (memberId: string) => {
+  const handleDeleteMember = useCallback((memberId: string) => {
     setFamilyMembers(prev => prev.filter(m => m.id !== memberId));
-    setDiaryNotes(prev => prev.filter(n => n.familyMemberId !== memberId)); // Also delete notes for this member
+    setDiaryNotes(prev => prev.filter(n => n.familyMemberId !== memberId)); 
     if (selectedMember?.id === memberId) {
       setSelectedMember(null);
     }
     toast({ title: "Deleted!", description: "Family member and their notes removed.", variant: "destructive" });
-  };
+  }, [setFamilyMembers, setDiaryNotes, selectedMember, setSelectedMember, toast]);
+  
+  const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
+    setEditingMember(memberToEdit);
+    setIsMemberFormOpen(true);
+  }, [setEditingMember, setIsMemberFormOpen]);
 
-  const handleSaveNote = (note: DiaryNote) => {
+
+  const handleSaveNote = useCallback((note: DiaryNote) => {
     setDiaryNotes(prev => [note, ...prev]);
     toast({ title: "Success!", description: "New diary note added." });
     setIsNoteFormOpen(false);
-  };
+  }, [setDiaryNotes, toast, setIsNoteFormOpen]);
 
-  const handleDeleteNote = (noteId: string) => {
+  const handleDeleteNote = useCallback((noteId: string) => {
     setDiaryNotes(prev => prev.filter(n => n.id !== noteId));
     toast({ title: "Deleted!", description: "Diary note removed.", variant: "destructive" });
-  };
+  }, [setDiaryNotes, toast]);
 
   const notesForSelectedMember = useMemo(() => {
     if (!selectedMember) return [];
@@ -185,8 +269,6 @@ export default function DiaryPage() {
       });
   }, [selectedMember, diaryNotes, searchTerm, sortOrder]);
 
-  const displayName = (member: FamilyMember) => member.customName || member.realName;
-  const avatarInitial = (member: FamilyMember) => displayName(member).substring(0, 1).toUpperCase();
 
   return (
     <div className="space-y-6">
@@ -217,41 +299,36 @@ export default function DiaryPage() {
           {familyMembers.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {familyMembers.map(member => (
-                <Card 
+                <FamilyMemberDisplayCard 
                   key={member.id} 
-                  className="cursor-pointer hover:shadow-xl transition-shadow duration-200 flex flex-col"
-                  onClick={() => setSelectedMember(member)}
-                  data-ai-hint="family member"
-                >
-                  <CardHeader className="items-center text-center">
-                    <Avatar className="h-20 w-20 mb-2">
-                      <AvatarImage src={member.avatarUrl} alt={displayName(member)} />
-                      <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
-                    </Avatar>
-                    <CardTitle>{displayName(member)}</CardTitle>
-                    <CardDescription>{member.realName}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow"></CardContent>
-                  <CardFooter className="flex justify-end gap-2 pt-4 border-t">
-                     <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditingMember(member); setIsMemberFormOpen(true);}}>
-                        <Edit2 className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteMember(member.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                  </CardFooter>
-                </Card>
+                  member={member}
+                  onSelectMember={setSelectedMember}
+                  onEditMember={handleEditMember}
+                  onDeleteMember={handleDeleteMember}
+                />
               ))}
             </div>
           ) : (
-            <div className="text-center py-10">
+            <div className="text-center py-10 rounded-lg bg-card border shadow-sm">
               <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-medium">No family members added yet.</h3>
+              <h3 className="mt-4 text-lg font-medium">No family members added yet.</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Click "Add Family Member" to start your diary.
+                Start by adding a family member to your diary.
               </p>
+              <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4">
+                    <Users className="mr-2 h-4 w-4" /> Add Family Member
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <FamilyMemberForm 
+                    member={editingMember || undefined} 
+                    onSave={handleSaveMember} 
+                    onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }} 
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </>
@@ -264,7 +341,7 @@ export default function DiaryPage() {
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={selectedMember.avatarUrl} alt={displayName(selectedMember)} />
+                  <AvatarImage src={selectedMember.avatarUrl} alt={displayName(selectedMember)} data-ai-hint="person portrait" />
                   <AvatarFallback>{avatarInitial(selectedMember)}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-2xl font-semibold">{displayName(selectedMember)}'s Notes</h2>
@@ -293,10 +370,11 @@ export default function DiaryPage() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-8 w-full"
+                            aria-label="Search notes for selected member"
                         />
                     </div>
                     <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" aria-label="Sort notes by date">
                             <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
                             <SelectValue placeholder="Sort by date" />
                         </SelectTrigger>
@@ -312,28 +390,26 @@ export default function DiaryPage() {
           {notesForSelectedMember.length > 0 ? (
             <div className="space-y-4">
               {notesForSelectedMember.map(note => (
-                <Card key={note.id} className="shadow-md">
-                  <CardContent className="p-4">
-                    <p className="whitespace-pre-wrap break-words">{note.noteText}</p>
-                    <div className="flex justify-between items-center mt-3 pt-3 border-t">
-                        <p className="text-xs text-muted-foreground">
-                        {format(new Date(note.createdAt), 'MMM d, yyyy HH:mm')}
-                        </p>
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteNote(note.id)} className="text-destructive hover:text-destructive">
-                            Delete
-                        </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <DiaryNoteDisplayCard key={note.id} note={note} onDeleteNote={handleDeleteNote} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-10">
+             <div className="text-center py-10 rounded-lg bg-card border shadow-sm">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-lg font-medium">No notes for {displayName(selectedMember)} yet.</h3>
+              <h3 className="mt-4 text-lg font-medium">No notes for {displayName(selectedMember)} yet.</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Click "Add Note" to write something down.
+                Click "Add Note" to write something down for them.
               </p>
+              <Dialog open={isNoteFormOpen} onOpenChange={setIsNoteFormOpen}>
+                <DialogTrigger asChild>
+                  <Button className="mt-4">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Note
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DiaryNoteForm familyMember={selectedMember} onSave={handleSaveNote} onClose={() => setIsNoteFormOpen(false)} />
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </div>
@@ -341,3 +417,5 @@ export default function DiaryPage() {
     </div>
   );
 }
+
+    
