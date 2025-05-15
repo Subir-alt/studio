@@ -2,41 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
-    --background: 0 0% 100%;                   /* White */
-    --foreground: 224 71.4% 10.1%;             /* Near Black for text, slightly softer */
+    --background: 210 40% 98%;                   /* Very light, slightly cool gray */
+    --foreground: 215 25% 25%;                 /* Dark, desaturated blue-gray */
     
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 10.1%;
+    --card: 0 0% 100%;                          /* White */
+    --card-foreground: 215 25% 25%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 10.1%;
+    --popover-foreground: 215 25% 25%;
     
-    --primary: 221.2 83.2% 53.3%;              /* Vibrant Blue (e.g. #3B82F6 from Tailwind's blue-500) */
-    --primary-foreground: 0 0% 98%;            /* White */
+    --primary: 205 90% 50%;                     /* Confident, modern blue */
+    --primary-foreground: 210 40% 98%;         /* Light text on primary */
     
-    --secondary: 220 14.3% 95.9%;             /* Very Light Gray (e.g. #F3F4F6 from Tailwind's gray-100) */
-    --secondary-foreground: 220 8.9% 46.1%;   /* Medium Gray for text on secondary (e.g. #6B7280 from gray-500) */
+    --secondary: 210 40% 96%;                  /* Lighter version of background */
+    --secondary-foreground: 215 20% 40%;      /* Slightly lighter text for secondary */
     
-    --muted: 220 14.3% 95.9%;                  /* Same as secondary */
-    --muted-foreground: 220 8.9% 46.1%;       /* Same as secondary-foreground, for muted text */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 15% 55%;          /* Muted text color */
     
-    --accent: 158 70% 45%;                     /* A modern, slightly desaturated Green */
-    --accent-foreground: 0 0% 98%;            /* White */
+    --accent: 30 90% 55%;                       /* Warm, inviting orange */
+    --accent-foreground: 215 25% 25%;          /* Dark text on accent */
     
-    --destructive: 0 72.2% 50.6%;              /* Red */
+    --destructive: 0 72% 51%;                  /* Standard red */
     --destructive-foreground: 0 0% 98%;        /* White */
     
-    --border: 220 13% 91%;                    /* Light Gray Border (e.g. #E5E7EB from gray-200) */
-    --input: 220 13% 91%;                     /* Same as border */
-    --ring: 221.2 83.2% 53.3%;                /* Primary blue for focus rings */
+    --border: 210 20% 88%;                     /* Light gray border */
+    --input: 210 20% 88%;                      /* Same as border */
+    --ring: 205 90% 60%;                       /* Slightly lighter primary for rings */
     
-    --radius: 0.75rem;                         /* 12px, increased for modern feel */
+    --radius: 0.7rem;                           /* Slightly smaller for a sleeker look */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -56,33 +52,33 @@ body {
   }
   
   .dark {
-    --background: 224 71.4% 10.1%;             /* Near Black, same as light-mode text */
-    --foreground: 0 0% 98%;                   /* White, same as light-mode primary-foreground */
+    --background: 215 30% 15%;                 /* Dark, cool slate gray */
+    --foreground: 210 30% 90%;                 /* Light gray text */
     
-    --card: 224 71.4% 12.1%;                  /* Slightly lighter than background for cards */
-    --card-foreground: 0 0% 98%;
+    --card: 215 30% 18%;                      /* Slightly lighter card background */
+    --card-foreground: 210 30% 90%;
     
-    --popover: 224 71.4% 12.1%;                 /* Same as card */
-    --popover-foreground: 0 0% 98%;
+    --popover: 215 30% 18%;
+    --popover-foreground: 210 30% 90%;
     
-    --primary: 218.2 73.2% 63.3%;              /* Slightly lighter blue for dark mode */
-    --primary-foreground: 224 71.4% 10.1%;      /* Dark text on primary for dark mode */
+    --primary: 205 80% 60%;                     /* Brighter blue for dark mode */
+    --primary-foreground: 215 30% 15%;          /* Dark text on primary */
     
-    --secondary: 215 27.9% 16.9%;             /* Dark Gray */
-    --secondary-foreground: 210 20% 70%;      /* Lighter gray for text on dark secondary */
+    --secondary: 215 25% 22%;                  /* Darker secondary background */
+    --secondary-foreground: 210 30% 70%;
     
-    --muted: 215 27.9% 16.9%;                  /* Same as dark secondary */
-    --muted-foreground: 210 20% 60%;          /* Slightly dimmer for muted text */
+    --muted: 215 25% 22%;
+    --muted-foreground: 210 25% 60%;
     
-    --accent: 158 60% 55%;                     /* Brighter green for dark mode accent */
-    --accent-foreground: 224 71.4% 10.1%;      /* Dark text on accent for contrast */
+    --accent: 30 80% 65%;                       /* Brighter orange for dark mode */
+    --accent-foreground: 215 30% 15%;          /* Dark text on accent */
     
-    --destructive: 0 62.8% 40.6%;              /* Darker, desaturated red */
+    --destructive: 0 60% 55%;                  /* Darker red */
     --destructive-foreground: 0 0% 98%;
     
-    --border: 215 20.2% 25.1%;               /* Dark gray border */
-    --input: 215 20.2% 25.1%;                /* Same as border */
-    --ring: 218.2 73.2% 63.3%;               /* Primary blue for dark mode rings */
+    --border: 215 20% 30%;                     /* Darker border */
+    --input: 215 20% 30%;                      /* Same as border */
+    --ring: 205 80% 70%;                       /* Brighter primary ring */
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -106,6 +102,6 @@ body {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans; /* Use the font variable from layout */
   }
 }
