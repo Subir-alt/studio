@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
-import { Lightbulb, PlusCircle, Search, Filter, ArrowUpDown } from 'lucide-react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
+import { Lightbulb, PlusCircle, Search, Filter, ArrowUpDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -91,7 +91,12 @@ export default function IdeasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [newIdeaText, setNewIdeaText] = useState('');
   const [newIdeaCategory, setNewIdeaCategory] = useState('');
+  const [hasMounted, setHasMounted] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(ideas.map(idea => idea.category).filter(Boolean)));
@@ -157,6 +162,15 @@ export default function IdeasPage() {
     setIdeas(prev => prev.filter(idea => idea.id !== id));
     toast({ title: "Deleted!", description: "Idea removed.", variant: "destructive" });
   }, [setIdeas, toast]);
+
+  if (!hasMounted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]"> {/* Adjust min-h as needed */}
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading Ideas...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -329,5 +343,3 @@ export default function IdeasPage() {
     </div>
   );
 }
-
-    

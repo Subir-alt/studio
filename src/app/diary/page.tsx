@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import Image from 'next/image'; // Not used, can be removed if AvatarImage handles all cases
-import { BookHeart, PlusCircle, Users, Search, Edit2, Trash2, MessageSquare, ArrowUpDown } from 'lucide-react';
+import { BookHeart, PlusCircle, Users, Search, Edit2, Trash2, MessageSquare, ArrowUpDown, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -59,7 +59,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
       id: member?.id || uuidv4(),
       realName: realName.trim(),
       customName: customName.trim() || undefined,
-      avatarUrl: member?.avatarUrl || `https://placehold.co/100x100.png`, // Updated placeholder
+      avatarUrl: member?.avatarUrl || `https://placehold.co/100x100.png`,
     });
   };
 
@@ -138,15 +138,15 @@ interface FamilyMemberDisplayCardProps {
 }
 
 const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, onDeleteMember }: FamilyMemberDisplayCardProps) => {
-  const handleCardClick = () => onSelectMember(member);
-  const handleEditClick = (e: React.MouseEvent) => {
+  const handleCardClick = useCallback(() => onSelectMember(member), [member, onSelectMember]);
+  const handleEditClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onEditMember(member);
-  };
-  const handleDeleteClick = (e: React.MouseEvent) => {
+  }, [member, onEditMember]);
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onDeleteMember(member.id);
-  };
+  },[member, onDeleteMember]);
 
   return (
     <Card 
@@ -215,8 +215,13 @@ export default function DiaryPage() {
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [hasMounted, setHasMounted] = useState(false);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const handleSaveMember = useCallback((member: FamilyMember) => {
     setFamilyMembers(prev => {
@@ -229,7 +234,7 @@ export default function DiaryPage() {
     toast({ title: "Success!", description: `Family member ${member.realName} saved.` });
     setIsMemberFormOpen(false);
     setEditingMember(null);
-  }, [setFamilyMembers, toast, setIsMemberFormOpen, setEditingMember]);
+  }, [setFamilyMembers, toast]);
 
   const handleDeleteMember = useCallback((memberId: string) => {
     setFamilyMembers(prev => prev.filter(m => m.id !== memberId));
@@ -243,14 +248,14 @@ export default function DiaryPage() {
   const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
     setEditingMember(memberToEdit);
     setIsMemberFormOpen(true);
-  }, [setEditingMember, setIsMemberFormOpen]);
+  }, []);
 
 
   const handleSaveNote = useCallback((note: DiaryNote) => {
     setDiaryNotes(prev => [note, ...prev]);
     toast({ title: "Success!", description: "New diary note added." });
     setIsNoteFormOpen(false);
-  }, [setDiaryNotes, toast, setIsNoteFormOpen]);
+  }, [setDiaryNotes, toast]);
 
   const handleDeleteNote = useCallback((noteId: string) => {
     setDiaryNotes(prev => prev.filter(n => n.id !== noteId));
@@ -269,6 +274,14 @@ export default function DiaryPage() {
       });
   }, [selectedMember, diaryNotes, searchTerm, sortOrder]);
 
+  if (!hasMounted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]"> {/* Adjust min-h as needed */}
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading Diary...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -417,5 +430,3 @@ export default function DiaryPage() {
     </div>
   );
 }
-
-    
