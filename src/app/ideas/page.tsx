@@ -1,12 +1,11 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, memo, useEffect } from 'react';
-import { Lightbulb, PlusCircle, Search, Filter, ArrowUpDown, Loader2 } from 'lucide-react';
+import { useState, useMemo, useCallback, memo } from 'react';
+import { Lightbulb, PlusCircle, Search, Filter, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-import { v4 as uuidv4 } from 'uuid';
 
-import useLocalStorage from '@/hooks/use-local-storage';
+import useRtdbList from '@/hooks/use-rtdb-list';
 import type { Idea, IdeaStatus, SortOrder } from '@/lib/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -39,10 +38,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface IdeaItemProps {
   idea: Idea;
-  onToggleStatus: (id: string) => void;
+  onToggleStatus: (id: string, currentStatus: 'pending' | 'done') => void;
   onDeleteIdea: (id: string) => void;
 }
 
@@ -65,7 +65,7 @@ const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) =>
           <Checkbox
             id={`status-${idea.id}`}
             checked={idea.status === 'done'}
-            onCheckedChange={() => onToggleStatus(idea.id)}
+            onCheckedChange={() => onToggleStatus(idea.id, idea.status)}
             aria-label={`Mark idea as ${idea.status === 'done' ? 'pending' : 'done'}`}
           />
           <Label htmlFor={`status-${idea.id}`} className="text-sm font-medium cursor-pointer">
@@ -83,7 +83,15 @@ IdeaItem.displayName = 'IdeaItem';
 
 
 export default function IdeasPage() {
-  const [ideas, setIdeas] = useLocalStorage<Idea[]>('memoria-ideas', []);
+  const { 
+    items: ideas, 
+    addItem: addIdeaToDb, 
+    updateItem: updateIdeaInDb, 
+    deleteItem: deleteIdeaFromDb, 
+    loading: ideasLoading, 
+    error: ideasError 
+  } = useRtdbList<Idea>('ideas');
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<IdeaStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -91,12 +99,7 @@ export default function IdeasPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [newIdeaText, setNewIdeaText] = useState('');
   const [newIdeaCategory, setNewIdeaCategory] = useState('');
-  const [hasMounted, setHasMounted] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(ideas.map(idea => idea.category).filter(Boolean)));
@@ -130,44 +133,67 @@ export default function IdeasPage() {
     return result;
   }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]);
 
-  const handleAddIdea = useCallback(() => {
+  const handleAddIdea = useCallback(async () => {
     if (!newIdeaText.trim()) {
       toast({ title: "Oops!", description: "Idea text cannot be empty.", variant: "destructive" });
       return;
     }
-    const newIdea: Idea = {
-      id: uuidv4(),
+    const newIdeaData: Omit<Idea, 'id'> = {
       text: newIdeaText.trim(),
       category: newIdeaCategory.trim() || 'Uncategorized',
       createdAt: new Date().toISOString(),
       status: 'pending',
     };
-    setIdeas(prev => [newIdea, ...prev]);
-    setNewIdeaText('');
-    setNewIdeaCategory('');
-    setIsFormOpen(false);
-    toast({ title: "Success!", description: "New idea added." });
-  }, [newIdeaText, newIdeaCategory, setIdeas, toast]);
+    try {
+      await addIdeaToDb(newIdeaData);
+      setNewIdeaText('');
+      setNewIdeaCategory('');
+      setIsFormOpen(false);
+      toast({ title: "Success!", description: "New idea added." });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to add idea.", variant: "destructive" });
+      console.error("Failed to add idea:", e);
+    }
+  }, [newIdeaText, newIdeaCategory, addIdeaToDb, toast]);
 
-  const handleToggleStatus = useCallback((id: string) => {
-    setIdeas(prev =>
-      prev.map(idea =>
-        idea.id === id ? { ...idea, status: idea.status === 'pending' ? 'done' : 'pending' } : idea
-      )
-    );
-    toast({ title: "Updated!", description: "Idea status changed." });
-  }, [setIdeas, toast]);
+  const handleToggleStatus = useCallback(async (id: string, currentStatus: 'pending' | 'done') => {
+    try {
+      await updateIdeaInDb(id, { status: currentStatus === 'pending' ? 'done' : 'pending' });
+      toast({ title: "Updated!", description: "Idea status changed." });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to update idea status.", variant: "destructive" });
+      console.error("Failed to update idea status:", e);
+    }
+  }, [updateIdeaInDb, toast]);
   
-  const handleDeleteIdea = useCallback((id: string) => {
-    setIdeas(prev => prev.filter(idea => idea.id !== id));
-    toast({ title: "Deleted!", description: "Idea removed.", variant: "destructive" });
-  }, [setIdeas, toast]);
+  const handleDeleteIdea = useCallback(async (id: string) => {
+    try {
+      await deleteIdeaFromDb(id);
+      toast({ title: "Deleted!", description: "Idea removed.", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to delete idea.", variant: "destructive" });
+      console.error("Failed to delete idea:", e);
+    }
+  }, [deleteIdeaFromDb, toast]);
 
-  if (!hasMounted) {
+  if (ideasLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]"> {/* Adjust min-h as needed */}
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">Loading Ideas...</p>
+      </div>
+    );
+  }
+
+  if (ideasError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading ideas: {ideasError.message}. Please ensure your Firebase configuration in /src/lib/firebase.ts is correct and the database is accessible.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }

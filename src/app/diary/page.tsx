@@ -2,12 +2,10 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, memo } from 'react';
-import Image from 'next/image'; // Not used, can be removed if AvatarImage handles all cases
-import { BookHeart, PlusCircle, Users, Search, Edit2, Trash2, MessageSquare, ArrowUpDown, Loader2 } from 'lucide-react';
+import { BookHeart, PlusCircle, Users, Search, Edit2, Trash2, MessageSquare, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-import { v4 as uuidv4 } from 'uuid';
 
-import useLocalStorage from '@/hooks/use-local-storage';
+import useRtdbList from '@/hooks/use-rtdb-list';
 import type { FamilyMember, DiaryNote, SortOrder } from '@/lib/types';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -33,21 +31,22 @@ import {
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const displayName = (member: FamilyMember) => member.customName || member.realName;
 const avatarInitial = (member: FamilyMember) => displayName(member).substring(0, 1).toUpperCase();
 
 interface FamilyMemberFormProps {
   member?: FamilyMember;
-  onSave: (member: FamilyMember) => void;
+  onSave: (memberData: Omit<FamilyMember, 'id'>, id?: string) => void;
   onClose: () => void;
 }
 
 function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
   const [realName, setRealName] = useState(member?.realName || '');
   const [customName, setCustomName] = useState(member?.customName || '');
+  const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl || `https://placehold.co/100x100.png`); // Keep placeholder
   const { toast } = useToast();
 
   const handleSubmit = () => {
@@ -56,11 +55,10 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
       return;
     }
     onSave({
-      id: member?.id || uuidv4(),
       realName: realName.trim(),
       customName: customName.trim() || undefined,
-      avatarUrl: member?.avatarUrl || `https://placehold.co/100x100.png`,
-    });
+      avatarUrl: avatarUrl.trim() || `https://placehold.co/100x100.png`,
+    }, member?.id);
   };
 
   return (
@@ -77,6 +75,10 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
           <Label htmlFor="customName" className="text-right">Custom Name</Label>
           <Input id="customName" value={customName} onChange={(e) => setCustomName(e.target.value)} className="col-span-3" placeholder="e.g., Dad, Bestie (Optional)" />
         </div>
+         <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="avatarUrl" className="text-right">Avatar URL</Label>
+          <Input id="avatarUrl" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} className="col-span-3" placeholder="https://placehold.co/100x100.png" />
+        </div>
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -88,7 +90,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
 
 interface DiaryNoteFormProps {
   familyMember: FamilyMember;
-  onSave: (note: DiaryNote) => void;
+  onSave: (noteData: Omit<DiaryNote, 'id' | 'familyMemberId' | 'createdAt'>) => void;
   onClose: () => void;
 }
 
@@ -102,10 +104,7 @@ function DiaryNoteForm({ familyMember, onSave, onClose }: DiaryNoteFormProps) {
       return;
     }
     onSave({
-      id: uuidv4(),
-      familyMemberId: familyMember.id,
       noteText: noteText.trim(),
-      createdAt: new Date().toISOString(),
     });
   };
 
@@ -206,8 +205,22 @@ DiaryNoteDisplayCard.displayName = 'DiaryNoteDisplayCard';
 
 
 export default function DiaryPage() {
-  const [familyMembers, setFamilyMembers] = useLocalStorage<FamilyMember[]>('memoria-family-members', []);
-  const [diaryNotes, setDiaryNotes] = useLocalStorage<DiaryNote[]>('memoria-diary-notes', []);
+  const { 
+    items: familyMembers, 
+    addItem: addFamilyMemberToDb, 
+    updateItem: updateFamilyMemberInDb, 
+    deleteItem: deleteFamilyMemberFromDb, 
+    loading: familyMembersLoading, 
+    error: familyMembersError 
+  } = useRtdbList<FamilyMember>('familyMembers');
+
+  const { 
+    items: diaryNotes, 
+    addItem: addDiaryNoteToDb, 
+    deleteItem: deleteDiaryNoteFromDb, 
+    loading: diaryNotesLoading, 
+    error: diaryNotesError 
+  } = useRtdbList<DiaryNote>('diaryNotes');
   
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [isMemberFormOpen, setIsMemberFormOpen] = useState(false);
@@ -215,52 +228,77 @@ export default function DiaryPage() {
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
-  const [hasMounted, setHasMounted] = useState(false);
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  const handleSaveMember = useCallback((member: FamilyMember) => {
-    setFamilyMembers(prev => {
-      const existing = prev.find(m => m.id === member.id);
-      if (existing) {
-        return prev.map(m => m.id === member.id ? member : m);
+  const handleSaveMember = useCallback(async (memberData: Omit<FamilyMember, 'id'>, id?: string) => {
+    try {
+      if (id) { // Editing existing member
+        await updateFamilyMemberInDb(id, memberData);
+        toast({ title: "Success!", description: `Family member ${memberData.realName} updated.` });
+      } else { // Adding new member
+        await addFamilyMemberToDb(memberData);
+        toast({ title: "Success!", description: `Family member ${memberData.realName} added.` });
       }
-      return [member, ...prev];
-    });
-    toast({ title: "Success!", description: `Family member ${member.realName} saved.` });
-    setIsMemberFormOpen(false);
-    setEditingMember(null);
-  }, [setFamilyMembers, toast]);
-
-  const handleDeleteMember = useCallback((memberId: string) => {
-    setFamilyMembers(prev => prev.filter(m => m.id !== memberId));
-    setDiaryNotes(prev => prev.filter(n => n.familyMemberId !== memberId)); 
-    if (selectedMember?.id === memberId) {
-      setSelectedMember(null);
+      setIsMemberFormOpen(false);
+      setEditingMember(null);
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to save family member.", variant: "destructive" });
+      console.error("Failed to save family member:", e);
     }
-    toast({ title: "Deleted!", description: "Family member and their notes removed.", variant: "destructive" });
-  }, [setFamilyMembers, setDiaryNotes, selectedMember, setSelectedMember, toast]);
+  }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast]);
+
+  const handleDeleteMember = useCallback(async (memberId: string) => {
+    // Also delete associated diary notes
+    const notesToDelete = diaryNotes.filter(note => note.familyMemberId === memberId);
+    try {
+      await Promise.all(notesToDelete.map(note => deleteDiaryNoteFromDb(note.id)));
+      await deleteFamilyMemberFromDb(memberId);
+      
+      if (selectedMember?.id === memberId) {
+        setSelectedMember(null);
+      }
+      toast({ title: "Deleted!", description: "Family member and their notes removed.", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to delete family member or their notes.", variant: "destructive" });
+      console.error("Failed to delete family member:", e);
+    }
+  }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember, toast]);
   
   const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
     setEditingMember(memberToEdit);
     setIsMemberFormOpen(true);
   }, []);
 
+  const handleSaveNote = useCallback(async (noteData: Omit<DiaryNote, 'id' | 'familyMemberId' | 'createdAt'>) => {
+    if (!selectedMember) {
+      toast({ title: "Error", description: "No family member selected.", variant: "destructive" });
+      return;
+    }
+    const newNoteData: Omit<DiaryNote, 'id'> = {
+      ...noteData,
+      familyMemberId: selectedMember.id,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      await addDiaryNoteToDb(newNoteData);
+      toast({ title: "Success!", description: "New diary note added." });
+      setIsNoteFormOpen(false);
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to add note.", variant: "destructive" });
+      console.error("Failed to add note:", e);
+    }
+  }, [selectedMember, addDiaryNoteToDb, toast]);
 
-  const handleSaveNote = useCallback((note: DiaryNote) => {
-    setDiaryNotes(prev => [note, ...prev]);
-    toast({ title: "Success!", description: "New diary note added." });
-    setIsNoteFormOpen(false);
-  }, [setDiaryNotes, toast]);
-
-  const handleDeleteNote = useCallback((noteId: string) => {
-    setDiaryNotes(prev => prev.filter(n => n.id !== noteId));
-    toast({ title: "Deleted!", description: "Diary note removed.", variant: "destructive" });
-  }, [setDiaryNotes, toast]);
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    try {
+      await deleteDiaryNoteFromDb(noteId);
+      toast({ title: "Deleted!", description: "Diary note removed.", variant: "destructive" });
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to delete note.", variant: "destructive" });
+      console.error("Failed to delete note:", e);
+    }
+  }, [deleteDiaryNoteFromDb, toast]);
 
   const notesForSelectedMember = useMemo(() => {
     if (!selectedMember) return [];
@@ -274,11 +312,27 @@ export default function DiaryPage() {
       });
   }, [selectedMember, diaryNotes, searchTerm, sortOrder]);
 
-  if (!hasMounted) {
+  const isLoading = familyMembersLoading || diaryNotesLoading;
+  const RtdbError = familyMembersError || diaryNotesError;
+
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]"> {/* Adjust min-h as needed */}
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading Diary...</p>
+        <p className="mt-4 text-muted-foreground">Loading Diary Data...</p>
+      </div>
+    );
+  }
+
+  if (RtdbError) {
+     return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading diary data: {RtdbError.message}. Please ensure your Firebase configuration in /src/lib/firebase.ts is correct and the database is accessible.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
