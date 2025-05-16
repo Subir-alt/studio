@@ -13,7 +13,10 @@ const firebaseConfig = {
 
 // Import and initialize Firebase
 import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 
 let firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
 
-export { firebaseApp };
+export { firebaseApp, auth };
+
