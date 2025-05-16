@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { auth } from '@/lib/firebase';
 import { 
   onAuthStateChanged, 
-  createUserWithEmailAndPassword, 
+  // createUserWithEmailAndPassword, // Removed as signup is disabled
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut,
   type AuthError
@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUp: (email: string, pass: string) => Promise<User | null>;
+  // signUp: (email: string, pass: string) => Promise<User | null>; // signUp function removed
   signIn: (email: string, pass: string) => Promise<User | null>;
   signOut: () => Promise<void>;
 }
@@ -38,23 +38,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signUp = async (email: string, pass: string): Promise<User | null> => {
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      setUser(userCredential.user);
-      toast({ title: 'Success', description: 'Account created successfully!' });
-      router.push('/'); // Redirect to home or dashboard after sign up
-      return userCredential.user;
-    } catch (error) {
-      const authError = error as AuthError;
-      console.error("Error signing up:", authError);
-      toast({ title: 'Sign Up Error', description: authError.message || 'Failed to create account.', variant: 'destructive' });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+  // signUp function is removed as per new requirements
+  // const signUp = async (email: string, pass: string): Promise<User | null> => {
+  //   setLoading(true);
+  //   try {
+  //     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+  //     setUser(userCredential.user);
+  //     toast({ title: 'Success', description: 'Account created successfully!' });
+  //     router.push('/'); 
+  //     return userCredential.user;
+  //   } catch (error) {
+  //     const authError = error as AuthError;
+  //     console.error("Error signing up:", authError);
+  //     toast({ title: 'Sign Up Error', description: authError.message || 'Failed to create account.', variant: 'destructive' });
+  //     return null;
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const signIn = async (email: string, pass: string): Promise<User | null> => {
     setLoading(true);
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const authError = error as AuthError;
       console.error("Error signing in:", authError);
-      toast({ title: 'Sign In Error', description: authError.message || 'Failed to sign in.', variant: 'destructive' });
+      toast({ title: 'Sign In Error', description: authError.message || 'Failed to sign in. Please check your credentials.', variant: 'destructive' });
       return null;
     } finally {
       setLoading(false);
@@ -91,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

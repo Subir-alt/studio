@@ -2,8 +2,10 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+// Link component is no longer needed here as we remove the signup link
+// import Link from 'next/link';
+// useRouter is not directly used in this simplified version for navigation actions, AuthContext handles it.
+// import { useRouter } from 'next/navigation'; 
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +17,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, loading } = useAuth();
-  const router = useRouter();
+  // const router = useRouter(); // Not used directly for navigation here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,10 +67,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col items-center text-center space-y-2 pt-6">
           <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-semibold text-primary hover:underline">
-              Sign up here
-            </Link>
+            This application uses shared login credentials.
           </p>
         </CardFooter>
       </Card>

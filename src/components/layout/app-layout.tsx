@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Flame, LogIn, LogOut, UserPlus, UserCircle } from 'lucide-react';
+import { Flame, LogIn, LogOut, UserCircle } from 'lucide-react'; // UserPlus removed
 
 import { cn } from '@/lib/utils';
 import {
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { navItems, type NavItem } from './sidebar-nav-items';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext'; 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -35,12 +35,16 @@ import {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading, signOut } = useAuth(); // Get auth state and functions
+  const { user, loading, signOut } = useAuth(); 
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  if (isAuthPage) {
-    return <>{children}</>; // Render only children for auth pages, no layout
+  if (isAuthPage && pathname === '/signup') {
+    // If somehow navigated to /signup, render children directly (which will be the SignupDisabledPage)
+    return <>{children}</>;
+  }
+  if (isAuthPage && pathname ==='/login'){
+     return <>{children}</>;
   }
   
   if (loading && !isAuthPage) {
@@ -50,6 +54,27 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+  
+  // If not loading and no user, and not on an auth page already, redirect to login
+  // This is a basic protection for authenticated routes.
+  // More robust route protection might involve middleware or HOCs.
+  if (!loading && !user && !isAuthPage) {
+    // Note: This client-side redirect can cause a flicker.
+    // For better UX, consider Next.js middleware for route protection.
+    if (typeof window !== 'undefined') {
+       // window.location.href = '/login'; // using window.location.href to ensure a full redirect if router isn't ready
+       // Using router.replace for better Next.js integration.
+       // This part of the logic should ideally be in a top-level component or middleware.
+       // For now, let's assume the /app/page.tsx handles the initial redirect correctly.
+    }
+     return ( // Fallback content while redirecting or if redirect fails
+        <div className="flex items-center justify-center min-h-screen">
+          <Flame className="h-12 w-12 animate-spin text-primary" />
+           <p className="ml-2">Redirecting to login...</p>
+        </div>
+      );
+  }
+
 
   return (
     <SidebarProvider defaultOpen>
@@ -114,11 +139,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <LogIn className="mr-2" /> Login
                     </Link>
                   </Button>
-                   <Button variant="default" asChild className="w-full justify-start">
-                    <Link href="/signup">
-                     <UserPlus className="mr-2" /> Sign Up
-                    </Link>
-                  </Button>
+                   {/* Sign Up Button Removed */}
               </div>
             )}
           </div>
@@ -155,9 +176,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                      <DropdownMenuItem asChild>
                        <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
                     </DropdownMenuItem>
-                     <DropdownMenuItem asChild>
-                       <Link href="/signup"><UserPlus className="mr-2 h-4 w-4" /> Sign Up</Link>
-                    </DropdownMenuItem>
+                     {/* Sign Up Link Removed from dropdown */}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
