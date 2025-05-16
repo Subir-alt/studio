@@ -2,7 +2,7 @@
 // Firebase project configuration
 // This configuration was obtained from your Firebase project settings.
 const firebaseConfig = {
-  apiKey: "AIzaSyAq_zQxT1gsbNMgFGiFlr0qv7LYKKGz6eY",
+  apiKey: "AIzaSyCSmPQdaMd27kfyMwWvPKez6Ix6hTSwWKc", // New API Key
   authDomain: "memoria-padit.firebaseapp.com",
   databaseURL: "https://memoria-padit-default-rtdb.firebaseio.com",
   projectId: "memoria-padit",
