@@ -1,18 +1,17 @@
 
-// TODO: Replace with your actual Firebase project configuration
-// You can find this in your Firebase project settings.
+// Firebase project configuration
+// This configuration was obtained from your Firebase project settings.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyAq_zQxT1gsbNMgFGiFlr0qv7LYKKGz6eY",
+  authDomain: "memoria-padit.firebaseapp.com",
+  databaseURL: "https://memoria-padit-default-rtdb.firebaseio.com", // Constructed based on projectId
+  projectId: "memoria-padit",
+  storageBucket: "memoria-padit.firebasestorage.app",
+  messagingSenderId: "942752770709",
+  appId: "1:942752770709:web:3aeab2385d59af7073899c",
 };
 
-// Import and initialize Firebase (if not already done for server-side)
-// For client-side usage:
+// Import and initialize Firebase
 import { initializeApp, getApp, getApps } from 'firebase/app';
 
 let firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
