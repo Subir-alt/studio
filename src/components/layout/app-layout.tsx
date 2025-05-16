@@ -3,8 +3,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Flame, LogIn, LogOut, UserCircle } from 'lucide-react'; // UserPlus removed
+import { usePathname, useRouter } // Import useRouter
+  from 'next/navigation';
+import { Flame, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react'; // UserPlus removed, Added Loader2
 
 import { cn } from '@/lib/utils';
 import {
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import { navItems, type NavItem } from './sidebar-nav-items';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/AuthContext'; 
+import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -35,46 +36,40 @@ import {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, loading, signOut } = useAuth(); 
+  const router = useRouter(); // Initialize router
+  const { user, loading, signOut } = useAuth();
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  if (isAuthPage && pathname === '/signup') {
-    // If somehow navigated to /signup, render children directly (which will be the SignupDisabledPage)
+  if (isAuthPage) { // Covers /login and /signup (SignupDisabledPage)
     return <>{children}</>;
   }
-  if (isAuthPage && pathname ==='/login'){
-     return <>{children}</>;
-  }
-  
-  if (loading && !isAuthPage) {
+
+  if (loading) { // Covers initial load for any non-auth page, including '/'
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Flame className="h-12 w-12 animate-spin text-primary" />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" /> {/* Changed to Loader2 for consistency */}
       </div>
     );
   }
-  
-  // If not loading and no user, and not on an auth page already, redirect to login
-  // This is a basic protection for authenticated routes.
-  // More robust route protection might involve middleware or HOCs.
-  if (!loading && !user && !isAuthPage) {
-    // Note: This client-side redirect can cause a flicker.
-    // For better UX, consider Next.js middleware for route protection.
+
+  // If not loading, no user, and trying to access a protected route (i.e., not '/' and not an auth page)
+  if (!user && !loading && pathname !== '/') {
+    // For actual protected routes like /ideas or /diary, redirect to login
     if (typeof window !== 'undefined') {
-       // window.location.href = '/login'; // using window.location.href to ensure a full redirect if router isn't ready
-       // Using router.replace for better Next.js integration.
-       // This part of the logic should ideally be in a top-level component or middleware.
-       // For now, let's assume the /app/page.tsx handles the initial redirect correctly.
+      router.replace('/login');
     }
-     return ( // Fallback content while redirecting or if redirect fails
-        <div className="flex items-center justify-center min-h-screen">
-          <Flame className="h-12 w-12 animate-spin text-primary" />
-           <p className="ml-2">Redirecting to login...</p>
-        </div>
-      );
+    return ( // Fallback content while redirecting from a protected route
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" /> {/* Changed to Loader2 */}
+        <p className="ml-2">Redirecting to login...</p>
+      </div>
+    );
   }
 
+  // If we reach here, it means:
+  // 1. User is logged in (user is not null) -> show full layout
+  // 2. OR Path is '/' (pathname === '/') -> show full layout, HomePage will handle its own redirect if !user
 
   return (
     <SidebarProvider defaultOpen>
@@ -134,52 +129,52 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
             ) : (
               <div className="flex flex-col gap-1 p-2">
-                 <Button variant="outline" asChild className="w-full justify-start">
-                    <Link href="/login">
-                      <LogIn className="mr-2" /> Login
-                    </Link>
-                  </Button>
-                   {/* Sign Up Button Removed */}
+                <Button variant="outline" asChild className="w-full justify-start">
+                  <Link href="/login">
+                    <LogIn className="mr-2" /> Login
+                  </Link>
+                </Button>
+                {/* Sign Up Button Removed */}
               </div>
             )}
           </div>
           <div className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2 hidden">
-             {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" size="icon" className="rounded-full">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.photoURL || undefined} />
-                           <AvatarFallback>
-                            {user.email ? user.email[0].toUpperCase() : <UserCircle className="h-5 w-5" />}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="mb-2 ml-2" side="right" align="center">
-                    <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Logout</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" size="icon">
-                        <UserCircle className="h-6 w-6" />
-                      </Button>
-                  </DropdownMenuTrigger>
-                   <DropdownMenuContent className="mb-2 ml-2" side="right" align="center">
-                     <DropdownMenuItem asChild>
-                       <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
-                    </DropdownMenuItem>
-                     {/* Sign Up Link Removed from dropdown */}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.photoURL || undefined} />
+                      <AvatarFallback>
+                        {user.email ? user.email[0].toUpperCase() : <UserCircle className="h-5 w-5" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="mb-2 ml-2" side="right" align="center">
+                  <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <UserCircle className="h-6 w-6" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="mb-2 ml-2" side="right" align="center">
+                  <DropdownMenuItem asChild>
+                    <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
+                  </DropdownMenuItem>
+                  {/* Sign Up Link Removed from dropdown */}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </SidebarFooter>
       </Sidebar>
