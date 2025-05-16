@@ -1,9 +1,6 @@
 
 // Firebase project configuration
 // This configuration was obtained from your Firebase project settings.
-// IMPORTANT: YOU MUST VERIFY THESE VALUES, ESPECIALLY `apiKey`,
-// WITH THE VALUES FROM YOUR FIREBASE PROJECT CONSOLE.
-// Go to Project settings > General > Your apps > Firebase SDK snippet > Config.
 const firebaseConfig = {
   apiKey: "AIzaSyAq_zQxT1gsbNMgFGiFlr0qv7LYKKGz6eY",
   authDomain: "memoria-padit.firebaseapp.com",
@@ -13,6 +10,9 @@ const firebaseConfig = {
   messagingSenderId: "942752770709",
   appId: "1:942752770709:web:3aeab2385d59af7073899c",
 };
+
+// Log the configuration to the console for verification
+console.log("Firebase Config Loaded:", firebaseConfig);
 
 // Import and initialize Firebase
 import { initializeApp, getApp, getApps } from 'firebase/app';
