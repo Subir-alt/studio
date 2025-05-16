@@ -9,7 +9,7 @@ const firebaseConfig = {
   authDomain: "memoria-padit.firebaseapp.com",
   databaseURL: "https://memoria-padit-default-rtdb.firebaseio.com",
   projectId: "memoria-padit",
-  storageBucket: "memoria-padit.firebasestorage.app",
+  storageBucket: "memoria-padit.appspot.com",
   messagingSenderId: "942752770709",
   appId: "1:942752770709:web:3aeab2385d59af7073899c",
 };
