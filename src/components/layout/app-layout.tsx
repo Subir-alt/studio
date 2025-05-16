@@ -3,9 +3,9 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } // Import useRouter
+import { usePathname, useRouter }
   from 'next/navigation';
-import { Flame, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react'; // UserPlus removed, Added Loader2
+import { Flame, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -36,32 +36,39 @@ import {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
   const { user, loading, signOut } = useAuth();
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  if (isAuthPage) { // Covers /login and /signup (SignupDisabledPage)
+  React.useEffect(() => {
+    // If not loading, no user, and trying to access a protected route (i.e., not '/' and not an auth page)
+    if (!loading && !user && !isAuthPage && pathname !== '/') {
+      router.replace('/login');
+    }
+  }, [user, loading, pathname, router, isAuthPage]);
+
+
+  if (isAuthPage) {
     return <>{children}</>;
   }
 
-  if (loading) { // Covers initial load for any non-auth page, including '/'
+  // If loading, and it's not the homepage (which has its own loader)
+  if (loading && pathname !== '/') {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" /> {/* Changed to Loader2 for consistency */}
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-
-  // If not loading, no user, and trying to access a protected route (i.e., not '/' and not an auth page)
-  if (!user && !loading && pathname !== '/') {
-    // For actual protected routes like /ideas or /diary, redirect to login
-    if (typeof window !== 'undefined') {
-      router.replace('/login');
-    }
-    return ( // Fallback content while redirecting from a protected route
+  
+  // If not loading, no user, and trying to access a protected route (and not the homepage)
+  // We show a loader here because the useEffect above will handle the redirect.
+  // This prevents rendering the layout for a split second before redirecting.
+  if (!loading && !user && !isAuthPage && pathname !== '/') {
+    return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" /> {/* Changed to Loader2 */}
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="ml-2">Redirecting to login...</p>
       </div>
     );
@@ -70,6 +77,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // If we reach here, it means:
   // 1. User is logged in (user is not null) -> show full layout
   // 2. OR Path is '/' (pathname === '/') -> show full layout, HomePage will handle its own redirect if !user
+  // 3. OR Auth is still loading but it's the homepage, so let HomePage handle its loader/redirect
 
   return (
     <SidebarProvider defaultOpen>
@@ -134,7 +142,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <LogIn className="mr-2" /> Login
                   </Link>
                 </Button>
-                {/* Sign Up Button Removed */}
               </div>
             )}
           </div>
@@ -171,7 +178,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuItem asChild>
                     <Link href="/login"><LogIn className="mr-2 h-4 w-4" /> Login</Link>
                   </DropdownMenuItem>
-                  {/* Sign Up Link Removed from dropdown */}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -181,7 +187,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset className="p-4 md:p-6">
         <div className="flex items-center justify-between md:hidden mb-4">
           <SidebarTrigger />
-          {/* Mobile User Menu Trigger - Optional */}
         </div>
         {children}
       </SidebarInset>
