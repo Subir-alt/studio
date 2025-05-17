@@ -69,11 +69,14 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
 
     const trimmedCustomName = customName.trim();
 
+    // Handle customName explicitly: if editing and customName is cleared, set to null.
+    // If adding and customName is empty, it will be omitted.
     if (member && !trimmedCustomName) { 
       memberPayload.customName = null; 
     } else if (trimmedCustomName) { 
       memberPayload.customName = trimmedCustomName;
     }
+    // If !member (adding) and !trimmedCustomName, customName is not added to memberPayload, so it's omitted.
     
 
     onSave(memberPayload, member?.id);
@@ -175,14 +178,14 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
     >
       <CardHeader className="items-center text-center p-2 sm:p-3">
         <Avatar className="h-12 w-12 sm:h-16 sm:w-16 mb-1 sm:mb-2">
-          <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="person portrait" />
+          <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="emoji face" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
         <CardTitle className="text-xs sm:text-sm line-clamp-1">{displayName(member)}</CardTitle>
         {member.customName && <CardDescription className="text-[10px] sm:text-xs line-clamp-1">{member.realName}</CardDescription>}
       </CardHeader>
-      <CardContent className="px-2 sm:px-3 pb-0"></CardContent> {/* Removed flex-grow */}
-      <CardFooter className="flex justify-end gap-1 p-1 sm:p-2 border-t mt-auto"> {/* Added mt-auto */}
+      <CardContent className="px-2 sm:px-3 pb-0"></CardContent>
+      <CardFooter className="flex justify-end gap-1 p-1 sm:p-2 border-t mt-auto">
           <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`} className="h-7 w-7 sm:h-8 sm:w-8">
             <Edit2 className="h-3 w-3" />
             <span className="sr-only">Edit</span>
@@ -505,7 +508,7 @@ export default function DiaryPage() {
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={selectedMember.avatarUrl} alt={displayName(selectedMember)} data-ai-hint="person portrait" />
+                  <AvatarImage src={selectedMember.avatarUrl} alt={displayName(selectedMember)} data-ai-hint="emoji face" />
                   <AvatarFallback>{avatarInitial(selectedMember)}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-xl sm:text-2xl font-semibold">{displayName(selectedMember)}'s Notes</h2>
@@ -581,6 +584,3 @@ export default function DiaryPage() {
     </div>
   );
 }
-
-
-    
