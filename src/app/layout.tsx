@@ -15,10 +15,30 @@ export const metadata: Metadata = {
   title: 'Memoria',
   description: 'Personal Idea Tracker and Family Diary',
   manifest: '/manifest.json', // Link to the manifest file
-  themeColor: '#B0E2FF',      // Theme color based on primary (from style guidelines)
+  themeColor: '#B0E2FF',      // Theme color based on primary
   icons: {
-    apple: '/icons/icon-192x192.png', // Optional: for iOS, assumes icon exists in public/icons
+    apple: '/icons/icon-192x192.png', // Main icon for Apple's "Add to Home Screen"
+    // You can add more specific Apple icon sizes here if needed, e.g.:
+    // { rel: 'apple-touch-icon', sizes: '180x180', url: '/icons/icon-180x180.png' }
   },
+  appleWebApp: {
+    capable: true, // Indicates the web app is designed to look and feel like a native app when added to home screen
+    title: "Memoria", // The name that appears under the icon on the home screen
+    statusBarStyle: 'default', // Options: 'default', 'black', 'black-translucent'
+    // startupImage: [ // Optional: define splash screens for different device sizes
+    //   // Example: '/icons/apple-splash-2048x2732.png',
+    //   // {
+    //   //   url: '/splash/ipad_splash.png',
+    //   //   media: '(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)',
+    //   // },
+    // ],
+  },
+  // For other PWA related meta tags, if not directly supported by `Metadata` type,
+  // you might need to use `other` or add them directly if Next.js doesn't cover them.
+  // e.g. for older Android:
+  // other: {
+  //   'mobile-web-app-capable': 'yes',
+  // }
 };
 
 export default function RootLayout({
