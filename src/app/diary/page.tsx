@@ -42,10 +42,10 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Alert, AlertDescription as UIDescription } from '@/components/ui/alert'; // Renamed to avoid conflict
+import { Alert, AlertDescription as UIDescription } from '@/components/ui/alert';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useSetMobileHeaderActions } from '@/components/layout/app-layout';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext';
 
 const DEFAULT_PLACEHOLDER_AVATAR = 'https://placehold.co/100x100.png';
 
@@ -77,7 +77,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
     if (member?.realName) {
       return generateDiceBearAvatar(member.realName);
     }
-    return ''; 
+    return '';
   });
   const { toast } = useToast();
 
@@ -87,7 +87,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
       toast({ title: "Error", description: "Real name is required.", variant: "destructive" });
       return;
     }
-    
+
     let finalAvatarUrl = avatarUrl.trim();
     if (!finalAvatarUrl || finalAvatarUrl === DEFAULT_PLACEHOLDER_AVATAR) {
       finalAvatarUrl = generateDiceBearAvatar(trimmedRealName);
@@ -99,15 +99,15 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
     };
 
     const trimmedCustomName = customName.trim();
-    if (member && !trimmedCustomName) { 
-      memberPayload.customName = null; 
-    } else if (trimmedCustomName) { 
+    if (member && !trimmedCustomName) {
+      memberPayload.customName = null;
+    } else if (trimmedCustomName) {
       memberPayload.customName = trimmedCustomName;
     }
-    
+
     onSave(memberPayload, member?.id);
   };
-  
+
   useEffect(() => {
     if (!member || (member && (avatarUrl.startsWith('https://api.dicebear.com') || avatarUrl === DEFAULT_PLACEHOLDER_AVATAR || !avatarUrl))) {
       if (realName.trim()) {
@@ -133,12 +133,12 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
         </div>
          <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="avatarUrl" className="text-right">Avatar URL</Label>
-          <Input 
-            id="avatarUrl" 
-            value={avatarUrl} 
-            onChange={(e) => setAvatarUrl(e.target.value)} 
-            className="col-span-3" 
-            placeholder="Leave blank for an auto-generated avatar" 
+          <Input
+            id="avatarUrl"
+            value={avatarUrl}
+            onChange={(e) => setAvatarUrl(e.target.value)}
+            className="col-span-3"
+            placeholder="Leave blank for an auto-generated avatar"
           />
         </div>
          {avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:')) && (
@@ -183,9 +183,9 @@ function DiaryNoteForm({ familyMember, onSave, onClose }: DiaryNoteFormProps) {
         <DialogTitle>Add Note for {displayName(familyMember)}</DialogTitle>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        <Textarea 
-          value={noteText} 
-          onChange={(e) => setNoteText(e.target.value)} 
+        <Textarea
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
           placeholder={`What did ${displayName(familyMember)} say or how do you feel?`}
           rows={5}
         />
@@ -202,7 +202,7 @@ interface FamilyMemberDisplayCardProps {
   member: FamilyMember;
   onSelectMember: (member: FamilyMember) => void;
   onEditMember: (member: FamilyMember) => void;
-  onDeleteMemberTrigger: (memberId: string, memberName: string) => void; // Changed for dialog
+  onDeleteMemberTrigger: (memberId: string, memberName: string) => void;
 }
 
 const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, onDeleteMemberTrigger }: FamilyMemberDisplayCardProps) => {
@@ -216,13 +216,13 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
     onDeleteMemberTrigger(member.id, displayName(member));
   },[member.id, member, onDeleteMemberTrigger]);
 
-  const displayAvatarUrl = 
+  const displayAvatarUrl =
     (member.avatarUrl && member.avatarUrl !== DEFAULT_PLACEHOLDER_AVATAR && member.avatarUrl.startsWith('http'))
     ? member.avatarUrl
     : generateDiceBearAvatar(member.realName);
 
   return (
-    <Card 
+    <Card
       className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col"
       onClick={handleCardClick}
       data-ai-hint="family member"
@@ -237,7 +237,6 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
         <CardTitle className="text-xs sm:text-sm line-clamp-1">{displayName(member)}</CardTitle>
         {member.customName && <CardDescription className="text-[10px] sm:text-xs line-clamp-1">{member.realName}</CardDescription>}
       </CardHeader>
-      {/* CardContent removed for brevity as it was empty */}
       <CardFooter className="flex justify-end gap-1 p-1 sm:p-2 border-t mt-auto">
           <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`} className="h-7 w-7 sm:h-8 sm:w-8">
             <Edit2 className="h-3 w-3" />
@@ -255,7 +254,7 @@ FamilyMemberDisplayCard.displayName = 'FamilyMemberDisplayCard';
 
 interface DiaryNoteDisplayCardProps {
   note: DiaryNote;
-  onDeleteNoteTrigger: (noteId: string) => void; // Changed for dialog
+  onDeleteNoteTrigger: (noteId: string) => void;
 }
 
 const DiaryNoteDisplayCard = memo(({ note, onDeleteNoteTrigger }: DiaryNoteDisplayCardProps) => {
@@ -279,32 +278,36 @@ DiaryNoteDisplayCard.displayName = 'DiaryNoteDisplayCard';
 
 
 export default function DiaryPage() {
-  const { user } = useAuth(); // Get user for data scoping
-  const { 
-    items: familyMembers, 
-    addItem: addFamilyMemberToDb, 
-    updateItem: updateFamilyMemberInDb, 
-    deleteItem: deleteFamilyMemberFromDb, 
-    loading: familyMembersLoading, 
-    error: familyMembersError 
+  const { user } = useAuth();
+  const {
+    items: familyMembersFromDb,
+    addItem: addFamilyMemberToDb,
+    updateItem: updateFamilyMemberInDb,
+    deleteItem: deleteFamilyMemberFromDb,
+    loading: familyMembersLoading,
+    error: familyMembersError
   } = useRtdbList<FamilyMember>(user ? 'familyMembers' : '');
 
-  const { 
-    items: diaryNotes, 
-    addItem: addDiaryNoteToDb, 
-    deleteItem: deleteDiaryNoteFromDb, 
-    loading: diaryNotesLoading, 
-    error: diaryNotesError 
+  const {
+    items: diaryNotes,
+    addItem: addDiaryNoteToDb,
+    deleteItem: deleteDiaryNoteFromDb,
+    loading: diaryNotesLoading,
+    error: diaryNotesError
   } = useRtdbList<DiaryNote>(user ? 'diaryNotes' : '');
-  
+
   const [isClientLoaded, setIsClientLoaded] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [isMemberFormOpen, setIsMemberFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
-  const [instantSearchTerm, setInstantSearchTerm] = useState('');
-  const searchTerm = useDebounce(instantSearchTerm, 300); 
-  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+
+  const [instantNoteSearchTerm, setInstantNoteSearchTerm] = useState('');
+  const noteSearchTerm = useDebounce(instantNoteSearchTerm, 300);
+  const [noteSortOrder, setNoteSortOrder] = useState<SortOrder>('newest');
+
+  const [instantFamilySearchTerm, setInstantFamilySearchTerm] = useState('');
+  const familySearchTerm = useDebounce(instantFamilySearchTerm, 300);
 
   const [showDeleteMemberDialog, setShowDeleteMemberDialog] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{id: string, name: string} | null>(null);
@@ -324,19 +327,18 @@ export default function DiaryPage() {
       return;
     }
     try {
-      if (id) { 
-        const nameForToast = (memberData.realName || editingMember?.realName) 
-          ? displayName(memberData as Partial<FamilyMember>) 
+      if (id) {
+        const nameForToast = (memberData.realName || editingMember?.realName)
+          ? displayName(memberData as Partial<FamilyMember>)
           : "Member";
         await updateFamilyMemberInDb(id, memberData);
         toast({ title: "Success!", description: `Family member ${nameForToast} updated.` });
-      } else { 
-        if (!memberData.realName) { 
+      } else {
+        if (!memberData.realName) {
             toast({ title: "Error", description: "Real name is required to add a member.", variant: "destructive" });
             return;
         }
-        // const dataToSave = {...memberData, ownerUid: user.uid }; // ownerUid implicit in path
-        await addFamilyMemberToDb(memberData as Omit<FamilyMember, 'id'>); 
+        await addFamilyMemberToDb(memberData as Omit<FamilyMember, 'id'>);
         toast({ title: "Success!", description: `Family member ${displayName(memberData as Partial<FamilyMember>)} added.` });
       }
       setIsMemberFormOpen(false);
@@ -363,7 +365,7 @@ export default function DiaryPage() {
       const addMemberButtonDialog = (
         <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
           <DialogTrigger asChild>
-            <Button size="sm"> 
+            <Button size="sm">
               <Users className="mr-2 h-4 w-4" /> Add Member
             </Button>
           </DialogTrigger>
@@ -397,7 +399,7 @@ export default function DiaryPage() {
     try {
       await Promise.all(notesToDelete.map(note => deleteDiaryNoteFromDb(note.id)));
       await deleteFamilyMemberFromDb(memberToDelete.id);
-      
+
       if (selectedMember?.id === memberToDelete.id) {
         setSelectedMember(null);
       }
@@ -417,11 +419,11 @@ export default function DiaryPage() {
       setShowDeleteMemberDialog(false);
     }
   }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember, toast, memberToDelete]);
-  
+
   const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
     setEditingMember(memberToEdit);
     setIsMemberFormOpen(true);
-  }, []); 
+  }, []);
 
   const handleSaveNote = useCallback(async (noteData: Omit<DiaryNote, 'id' | 'familyMemberId' | 'createdAt'>) => {
     if (!selectedMember) {
@@ -436,7 +438,6 @@ export default function DiaryPage() {
       ...noteData,
       familyMemberId: selectedMember.id,
       createdAt: new Date().toISOString(),
-      // ownerUid: user.uid, // ownerUid implicit in path via useRtdbList
     };
     try {
       await addDiaryNoteToDb(newNoteData);
@@ -481,17 +482,26 @@ export default function DiaryPage() {
     }
   }, [deleteDiaryNoteFromDb, toast, noteToDeleteId]);
 
+  const filteredFamilyMembers = useMemo(() => {
+    if (!familySearchTerm) return familyMembersFromDb;
+    const lowercasedFilter = familySearchTerm.toLowerCase();
+    return familyMembersFromDb.filter(member =>
+      member.realName.toLowerCase().includes(lowercasedFilter) ||
+      (member.customName && member.customName.toLowerCase().includes(lowercasedFilter))
+    );
+  }, [familyMembersFromDb, familySearchTerm]);
+
   const notesForSelectedMember = useMemo(() => {
     if (!selectedMember) return [];
     return diaryNotes
       .filter(note => note.familyMemberId === selectedMember.id)
-      .filter(note => note.noteText.toLowerCase().includes(searchTerm.toLowerCase())) 
+      .filter(note => note.noteText.toLowerCase().includes(noteSearchTerm.toLowerCase()))
       .sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
-        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        return noteSortOrder === 'newest' ? dateB - dateA : dateA - dateB;
       });
-  }, [selectedMember, diaryNotes, searchTerm, sortOrder]); 
+  }, [selectedMember, diaryNotes, noteSearchTerm, noteSortOrder]);
 
   const isLoading = familyMembersLoading || diaryNotesLoading;
   const RtdbError = familyMembersError || diaryNotesError;
@@ -517,8 +527,8 @@ export default function DiaryPage() {
       </div>
     );
   }
-  
-  if (!user && !isLoading) { // Check if user is not logged in and not loading
+
+  if (!user && !isLoading) {
      return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <AlertTriangle className="h-12 w-12 text-muted-foreground" />
@@ -544,10 +554,10 @@ export default function DiaryPage() {
                 </Button>
                 </DialogTrigger>
                 <DialogContent>
-                <FamilyMemberForm 
-                    member={editingMember || undefined} 
-                    onSave={handleSaveMember} 
-                    onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }} 
+                <FamilyMemberForm
+                    member={editingMember || undefined}
+                    onSave={handleSaveMember}
+                    onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }}
                 />
                 </DialogContent>
             </Dialog>
@@ -557,11 +567,27 @@ export default function DiaryPage() {
 
       {!selectedMember ? (
         <>
-          {familyMembers.length > 0 ? (
+          <Card className="shadow-sm">
+            <CardContent className="p-2 sm:p-3 md:p-4">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search family members..."
+                  value={instantFamilySearchTerm}
+                  onChange={(e) => setInstantFamilySearchTerm(e.target.value)}
+                  className="pl-8 w-full"
+                  aria-label="Search family members"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {filteredFamilyMembers.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {familyMembers.map(member => (
-                <FamilyMemberDisplayCard 
-                  key={member.id} 
+              {filteredFamilyMembers.map(member => (
+                <FamilyMemberDisplayCard
+                  key={member.id}
                   member={member}
                   onSelectMember={setSelectedMember}
                   onEditMember={handleEditMember}
@@ -572,9 +598,10 @@ export default function DiaryPage() {
           ) : (
             <div className="text-center py-10 rounded-lg bg-card border shadow-sm">
               <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-medium">No family members added yet.</h3>
+              <h3 className="mt-4 text-lg font-medium">No family members found.</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Start by adding a family member to your diary.
+                {familySearchTerm ? "Try a different search term or " : "Start by "}
+                adding a family member to your diary.
               </p>
               <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
                 <DialogTrigger asChild>
@@ -583,10 +610,10 @@ export default function DiaryPage() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <FamilyMemberForm 
-                    member={editingMember || undefined} 
-                    onSave={handleSaveMember} 
-                    onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }} 
+                  <FamilyMemberForm
+                    member={editingMember || undefined}
+                    onSave={handleSaveMember}
+                    onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }}
                   />
                 </DialogContent>
               </Dialog>
@@ -602,12 +629,12 @@ export default function DiaryPage() {
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                  <AvatarImage 
+                  <AvatarImage
                     src={
                       (selectedMember.avatarUrl && selectedMember.avatarUrl !== DEFAULT_PLACEHOLDER_AVATAR && selectedMember.avatarUrl.startsWith('http'))
                       ? selectedMember.avatarUrl
                       : generateDiceBearAvatar(selectedMember.realName)
-                    } 
+                    }
                     alt={displayName(selectedMember)} data-ai-hint="cartoon avatar" />
                   <AvatarFallback>{avatarInitial(selectedMember)}</AvatarFallback>
                 </Avatar>
@@ -616,7 +643,7 @@ export default function DiaryPage() {
             </div>
              <Dialog open={isNoteFormOpen} onOpenChange={setIsNoteFormOpen}>
               <DialogTrigger asChild>
-                <Button size="sm"> {/* Mobile-first size */}
+                <Button size="sm">
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Note
                 </Button>
               </DialogTrigger>
@@ -625,7 +652,7 @@ export default function DiaryPage() {
               </DialogContent>
             </Dialog>
           </div>
-          
+
           <Card className="shadow-sm">
             <CardContent className="p-2 sm:p-3 md:p-4 space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -634,13 +661,13 @@ export default function DiaryPage() {
                         <Input
                             type="search"
                             placeholder="Search notes..."
-                            value={instantSearchTerm} 
-                            onChange={(e) => setInstantSearchTerm(e.target.value)} 
+                            value={instantNoteSearchTerm}
+                            onChange={(e) => setInstantNoteSearchTerm(e.target.value)}
                             className="pl-8 w-full"
                             aria-label="Search notes for selected member"
                         />
                     </div>
-                    <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+                    <Select value={noteSortOrder} onValueChange={(value) => setNoteSortOrder(value as SortOrder)}>
                         <SelectTrigger className="w-full" aria-label="Sort notes by date">
                             <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
                             <SelectValue placeholder="Sort by date" />
@@ -691,7 +718,7 @@ export default function DiaryPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setMemberToDelete(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteMember}>Delete Member</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDeleteMember} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Delete Member</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -705,7 +732,7 @@ export default function DiaryPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setNoteToDeleteId(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteNote}>Delete Note</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDeleteNote} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Delete Note</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
