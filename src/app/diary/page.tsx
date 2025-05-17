@@ -34,12 +34,17 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const displayName = (member: FamilyMember) => member.customName || member.realName;
-const avatarInitial = (member: FamilyMember) => displayName(member).substring(0, 1).toUpperCase();
+const displayName = (member: FamilyMember | Omit<FamilyMember, 'id'> | Partial<FamilyMember>) => {
+  if ('realName' in member && member.realName) {
+    return member.customName || member.realName;
+  }
+  return "Member";
+}
+const avatarInitial = (member: FamilyMember | Omit<FamilyMember, 'id'> | Partial<FamilyMember>) => displayName(member).substring(0, 1).toUpperCase();
 
 interface FamilyMemberFormProps {
   member?: FamilyMember;
-  onSave: (memberData: Omit<FamilyMember, 'id'>, id?: string) => void;
+  onSave: (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => void;
   onClose: () => void;
 }
 
@@ -54,12 +59,22 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
       toast({ title: "Error", description: "Real name is required.", variant: "destructive" });
       return;
     }
-    onSave({
+    
+    const memberPayload: Partial<Omit<FamilyMember, 'id'>> = {
       realName: realName.trim(),
-      customName: customName.trim() || undefined,
       avatarUrl: avatarUrl.trim() || `https://placehold.co/100x100.png`,
-    }, member?.id);
-    // onClose is called by onSave's success path
+    };
+
+    const trimmedCustomName = customName.trim();
+
+    if (member && !trimmedCustomName) { // Editing existing member and customName is cleared
+      memberPayload.customName = null; // Explicitly set to null to remove from DB
+    } else if (trimmedCustomName) { // Adding new member or editing existing one with a value
+      memberPayload.customName = trimmedCustomName;
+    }
+    // If adding a new member and customName is empty, the customName property is simply not added to memberPayload.
+
+    onSave(memberPayload, member?.id);
   };
 
   return (
@@ -107,7 +122,6 @@ function DiaryNoteForm({ familyMember, onSave, onClose }: DiaryNoteFormProps) {
     onSave({
       noteText: noteText.trim(),
     });
-    // onClose is called by onSave's success path
   };
 
   return (
@@ -147,7 +161,7 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onDeleteMember(member.id);
-  },[member, onDeleteMember]);
+  },[member.id, onDeleteMember]); // Corrected dependency
 
   return (
     <Card 
@@ -163,7 +177,7 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
         <CardTitle>{displayName(member)}</CardTitle>
-        <CardDescription>{member.realName}</CardDescription>
+        {member.customName && <CardDescription>{member.realName}</CardDescription>}
       </CardHeader>
       <CardContent className="flex-grow"></CardContent>
       <CardFooter className="flex justify-end gap-2 pt-4 border-t">
@@ -238,29 +252,40 @@ export default function DiaryPage() {
     setIsClientLoaded(true);
   }, []);
 
-  const handleSaveMember = useCallback(async (memberData: Omit<FamilyMember, 'id'>, id?: string) => {
+  const handleSaveMember = useCallback(async (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => {
     try {
       if (id) { // Editing existing member
+        // Ensure realName is present for displayName, or provide a fallback for the toast
+        const nameForToast = (memberData.realName || editingMember?.realName) 
+          ? displayName(memberData as Partial<FamilyMember>) 
+          : "Member";
         await updateFamilyMemberInDb(id, memberData);
-        toast({ title: "Success!", description: `Family member ${displayName(memberData as FamilyMember)} updated.` });
+        toast({ title: "Success!", description: `Family member ${nameForToast} updated.` });
       } else { // Adding new member
-        await addFamilyMemberToDb(memberData);
-        toast({ title: "Success!", description: `Family member ${displayName(memberData as FamilyMember)} added.` });
+        if (!memberData.realName) { // Should be caught by form validation, but as a safeguard
+            toast({ title: "Error", description: "Real name is required to add a member.", variant: "destructive" });
+            return;
+        }
+        await addFamilyMemberToDb(memberData as Omit<FamilyMember, 'id'>); // Cast: add expects all non-ID fields
+        toast({ title: "Success!", description: `Family member ${displayName(memberData as Partial<FamilyMember>)} added.` });
       }
       setIsMemberFormOpen(false);
       setEditingMember(null);
     } catch (e: any) {
       let description = "Failed to save family member.";
       if (e && e.message) {
-        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+        description += ` Details: ${e.message.substring(0, 200)}${e.message.length > 200 ? '...' : ''}`;
       }
       toast({ title: "Database Error", description, variant: "destructive" });
       console.error("Failed to save family member. Error object:", e);
       if (e && e.code) {
         console.error("Firebase Error Code:", e.code);
       }
+       if (e && e.stack) {
+        console.error("Firebase Error Stack:", e.stack);
+      }
     }
-  }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast]);
+  }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast, editingMember]);
 
   const handleDeleteMember = useCallback(async (memberId: string) => {
     const notesToDelete = diaryNotes.filter(note => note.familyMemberId === memberId);
@@ -283,7 +308,7 @@ export default function DiaryPage() {
         console.error("Firebase Error Code:", e.code);
       }
     }
-  }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember, toast]);
+  }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember?.id, toast]); // Corrected selectedMember dependency
   
   const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
     setEditingMember(memberToEdit);
@@ -518,5 +543,3 @@ export default function DiaryPage() {
     </div>
   );
 }
-
-    
