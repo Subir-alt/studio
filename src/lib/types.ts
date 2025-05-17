@@ -30,4 +30,5 @@ export interface Reminder {
 }
 
 export type IdeaStatus = 'all' | 'pending' | 'done';
-export type SortOrder = 'newest' | 'oldest';
+// Updated SortOrder to include options for reminder due dates
+export type SortOrder = 'newest' | 'oldest' | 'dueDateAsc' | 'dueDateDesc';

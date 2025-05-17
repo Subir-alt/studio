@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { CalendarClock, PlusCircle, Search, Filter, ArrowUpDown, Edit2, Trash2, CheckCircle2, XCircle, Loader2, AlertTriangle, CalendarIcon } from 'lucide-react';
 import { format, parseISO, startOfDay } from 'date-fns';
 
@@ -199,7 +199,7 @@ export default function RemindersPage() {
   const [instantSearchTerm, setInstantSearchTerm] = useState('');
   const searchTerm = useDebounce(instantSearchTerm, 300);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('newest'); // 'newest' by createdAt, or 'dueDateAsc', 'dueDateDesc'
+  const [sortOrder, setSortOrder] = useState<SortOrder>('dueDateAsc'); // Default to sort by due date ascending
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const { toast } = useToast();
@@ -228,9 +228,10 @@ export default function RemindersPage() {
         return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       } else if (sortOrder === 'dueDateAsc') {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      } else { // dueDateDesc
+      } else if (sortOrder === 'dueDateDesc') { // Explicitly check for 'dueDateDesc'
         return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
       }
+      return 0; // Default return if sortOrder is somehow unexpected
     });
 
     return result;
@@ -363,7 +364,7 @@ export default function RemindersPage() {
               </SelectContent>
             </Select>
 
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder | 'dueDateAsc' | 'dueDateDesc')}>
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
               <SelectTrigger className="w-full" aria-label="Sort by">
                 <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
                 <SelectValue placeholder="Sort by" />
