@@ -50,18 +50,18 @@ interface IdeaItemProps {
 const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) => {
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col">
-      <CardHeader>
-        <CardTitle className="text-lg break-words">{idea.text}</CardTitle>
+      <CardHeader className="p-4 sm:p-5">
+        <CardTitle className="text-base sm:text-lg break-words">{idea.text}</CardTitle>
         <CardDescription>
           Category: <span className="font-medium text-primary">{idea.category || 'Uncategorized'}</span>
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow px-4 sm:px-5 pb-3 sm:pb-4">
         <p className="text-xs text-muted-foreground">
           Created: {format(new Date(idea.createdAt), 'MMM d, yyyy HH:mm')}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-between items-center pt-4 border-t">
+      <CardFooter className="flex justify-between items-center p-4 sm:p-5 pt-3 sm:pt-4 border-t">
         <div className="flex items-center space-x-2">
           <Checkbox
             id={`status-${idea.id}`}
@@ -95,7 +95,7 @@ export default function IdeasPage() {
   
   const [isClientLoaded, setIsClientLoaded] = useState(false);
   const [instantSearchTerm, setInstantSearchTerm] = useState('');
-  const searchTerm = useDebounce(instantSearchTerm, 300); // Debounced search term
+  const searchTerm = useDebounce(instantSearchTerm, 300); 
   const [statusFilter, setStatusFilter] = useState<IdeaStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -116,7 +116,7 @@ export default function IdeasPage() {
   const filteredAndSortedIdeas = useMemo(() => {
     let result = ideas;
 
-    if (searchTerm) { // Use debounced searchTerm
+    if (searchTerm) { 
       result = result.filter(idea =>
         idea.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (idea.category && idea.category.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -138,7 +138,7 @@ export default function IdeasPage() {
     });
 
     return result;
-  }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]); // Dependency on debounced searchTerm
+  }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]); 
 
   const handleAddIdea = useCallback(async () => {
     if (!newIdeaText.trim()) {
@@ -285,15 +285,15 @@ export default function IdeasPage() {
       />
 
       <Card className="shadow-sm">
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-3 sm:p-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Search ideas..."
-                value={instantSearchTerm} // Use instantSearchTerm for input value
-                onChange={(e) => setInstantSearchTerm(e.target.value)} // Update instantSearchTerm
+                value={instantSearchTerm} 
+                onChange={(e) => setInstantSearchTerm(e.target.value)} 
                 className="pl-8 w-full"
                 aria-label="Search ideas"
               />
@@ -338,7 +338,7 @@ export default function IdeasPage() {
       </Card>
       
       {filteredAndSortedIdeas.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredAndSortedIdeas.map(idea => (
             <IdeaItem key={idea.id} idea={idea} onToggleStatus={handleToggleStatus} onDeleteIdea={handleDeleteIdea} />
           ))}

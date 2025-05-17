@@ -137,6 +137,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
             ) : (
               <div className="flex flex-col gap-1 p-2">
+                {/* Signup button/link removed as per user request for single shared login */}
                 <Button variant="outline" asChild className="w-full justify-start">
                   <Link href="/login">
                     <LogIn className="mr-2" /> Login
@@ -184,7 +185,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="p-4 md:p-6">
+      <SidebarInset className="p-3 sm:p-4 md:p-6">
         <div className="flex items-center justify-between md:hidden mb-4">
           <SidebarTrigger />
         </div>

@@ -68,12 +68,12 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
 
     const trimmedCustomName = customName.trim();
 
-    if (member && !trimmedCustomName) { // Editing existing member and customName is cleared
-      memberPayload.customName = null; // Explicitly set to null to remove from DB
-    } else if (trimmedCustomName) { // Adding new member or editing existing one with a value
+    if (member && !trimmedCustomName) { 
+      memberPayload.customName = null; 
+    } else if (trimmedCustomName) { 
       memberPayload.customName = trimmedCustomName;
     }
-    // If adding a new member and customName is empty, the customName property is simply not added to memberPayload.
+    
 
     onSave(memberPayload, member?.id);
   };
@@ -172,16 +172,16 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
     >
-      <CardHeader className="items-center text-center">
-        <Avatar className="h-20 w-20 mb-2">
+      <CardHeader className="items-center text-center p-4 sm:p-5">
+        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mb-2">
           <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="person portrait" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
-        <CardTitle>{displayName(member)}</CardTitle>
-        {member.customName && <CardDescription>{member.realName}</CardDescription>}
+        <CardTitle className="text-base sm:text-lg">{displayName(member)}</CardTitle>
+        {member.customName && <CardDescription className="text-xs sm:text-sm">{member.realName}</CardDescription>}
       </CardHeader>
-      <CardContent className="flex-grow"></CardContent>
-      <CardFooter className="flex justify-end gap-2 pt-4 border-t">
+      <CardContent className="flex-grow px-4 sm:px-5 pb-0"></CardContent>
+      <CardFooter className="flex justify-end gap-2 p-3 sm:p-4 border-t">
           <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`}>
             <Edit2 className="h-4 w-4" />
             <span className="sr-only">Edit</span>
@@ -204,13 +204,13 @@ interface DiaryNoteDisplayCardProps {
 const DiaryNoteDisplayCard = memo(({ note, onDeleteNote }: DiaryNoteDisplayCardProps) => {
   return (
     <Card className="shadow-md">
-      <CardContent className="p-4">
-        <p className="whitespace-pre-wrap break-words">{note.noteText}</p>
+      <CardContent className="p-3 sm:p-4">
+        <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{note.noteText}</p>
         <div className="flex justify-between items-center mt-3 pt-3 border-t">
             <p className="text-xs text-muted-foreground">
             {format(new Date(note.createdAt), 'MMM d, yyyy HH:mm')}
             </p>
-            <Button variant="ghost" size="sm" onClick={() => onDeleteNote(note.id)} className="text-destructive hover:text-destructive">
+            <Button variant="ghost" size="sm" onClick={() => onDeleteNote(note.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm">
                 Delete
             </Button>
         </div>
@@ -245,7 +245,7 @@ export default function DiaryPage() {
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
   const [instantSearchTerm, setInstantSearchTerm] = useState('');
-  const searchTerm = useDebounce(instantSearchTerm, 300); // Debounced search term for notes
+  const searchTerm = useDebounce(instantSearchTerm, 300); 
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
   const { toast } = useToast();
@@ -314,7 +314,7 @@ export default function DiaryPage() {
   const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
     setEditingMember(memberToEdit);
     setIsMemberFormOpen(true);
-  }, []); // setEditingMember and setIsMemberFormOpen are stable
+  }, []); 
 
   const handleSaveNote = useCallback(async (noteData: Omit<DiaryNote, 'id' | 'familyMemberId' | 'createdAt'>) => {
     if (!selectedMember) {
@@ -364,13 +364,13 @@ export default function DiaryPage() {
     if (!selectedMember) return [];
     return diaryNotes
       .filter(note => note.familyMemberId === selectedMember.id)
-      .filter(note => note.noteText.toLowerCase().includes(searchTerm.toLowerCase())) // Use debounced searchTerm
+      .filter(note => note.noteText.toLowerCase().includes(searchTerm.toLowerCase())) 
       .sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
       });
-  }, [selectedMember, diaryNotes, searchTerm, sortOrder]); // Dependency on debounced searchTerm
+  }, [selectedMember, diaryNotes, searchTerm, sortOrder]); 
 
   const isLoading = familyMembersLoading || diaryNotesLoading;
   const RtdbError = familyMembersError || diaryNotesError;
@@ -424,7 +424,7 @@ export default function DiaryPage() {
       {!selectedMember ? (
         <>
           {familyMembers.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {familyMembers.map(member => (
                 <FamilyMemberDisplayCard 
                   key={member.id} 
@@ -464,14 +464,14 @@ export default function DiaryPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
               <Button variant="outline" onClick={() => setSelectedMember(null)}>
-                &larr; Back to All Members
+                &larr; Back
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={selectedMember.avatarUrl} alt={displayName(selectedMember)} data-ai-hint="person portrait" />
                   <AvatarFallback>{avatarInitial(selectedMember)}</AvatarFallback>
                 </Avatar>
-                <h2 className="text-2xl font-semibold">{displayName(selectedMember)}'s Notes</h2>
+                <h2 className="text-xl sm:text-2xl font-semibold">{displayName(selectedMember)}'s Notes</h2>
               </div>
             </div>
              <Dialog open={isNoteFormOpen} onOpenChange={setIsNoteFormOpen}>
@@ -487,15 +487,15 @@ export default function DiaryPage() {
           </div>
           
           <Card className="shadow-sm">
-            <CardContent className="p-4 space-y-4">
+            <CardContent className="p-3 sm:p-4 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
                             placeholder="Search notes..."
-                            value={instantSearchTerm} // Use instantSearchTerm for input value
-                            onChange={(e) => setInstantSearchTerm(e.target.value)} // Update instantSearchTerm
+                            value={instantSearchTerm} 
+                            onChange={(e) => setInstantSearchTerm(e.target.value)} 
                             className="pl-8 w-full"
                             aria-label="Search notes for selected member"
                         />
