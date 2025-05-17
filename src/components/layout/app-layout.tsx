@@ -32,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import InstallPwaButton from '@/components/pwa/InstallPwaButton';
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   React.useEffect(() => {
-    // If not loading, no user, and trying to access a protected route (i.e., not '/' and not an auth page)
+    // If not loading, no user, and trying to access a protected route (i.e., not an auth page AND not the homepage)
     if (!loading && !user && !isAuthPage && pathname !== '/') {
       router.replace('/login');
     }
@@ -52,32 +53,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (isAuthPage) {
     return <>{children}</>;
   }
-
-  // If loading, and it's not the homepage (which has its own loader)
-  if (loading && pathname !== '/') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
   
-  // If not loading, no user, and trying to access a protected route (and not the homepage)
-  // We show a loader here because the useEffect above will handle the redirect.
-  // This prevents rendering the layout for a split second before redirecting.
-  if (!loading && !user && !isAuthPage && pathname !== '/') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-2">Redirecting to login...</p>
-      </div>
-    );
+  // Let HomePage handle its own loading/redirect logic if path is '/'
+  if (pathname !== '/') {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      );
+    }
+    // If not loading, no user, and trying to access a protected route (and not the homepage)
+    // This part should ideally be covered by the useEffect redirect,
+    // but as a fallback UI while redirecting:
+    if (!user) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="ml-2">Redirecting to login...</p>
+        </div>
+      );
+    }
   }
 
-  // If we reach here, it means:
-  // 1. User is logged in (user is not null) -> show full layout
-  // 2. OR Path is '/' (pathname === '/') -> show full layout, HomePage will handle its own redirect if !user
-  // 3. OR Auth is still loading but it's the homepage, so let HomePage handle its loader/redirect
 
   return (
     <SidebarProvider defaultOpen>
@@ -137,7 +135,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </DropdownMenu>
             ) : (
               <div className="flex flex-col gap-1 p-2">
-                {/* Signup button/link removed as per user request for single shared login */}
                 <Button variant="outline" asChild className="w-full justify-start">
                   <Link href="/login">
                     <LogIn className="mr-2" /> Login
@@ -190,6 +187,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarTrigger />
         </div>
         {children}
+        <InstallPwaButton />
       </SidebarInset>
     </SidebarProvider>
   );
