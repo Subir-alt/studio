@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
-import { Lightbulb, PlusCircle, Search, Filter as FilterIcon, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react';
+import { Lightbulb, PlusCircle, Search, Filter as FilterIcon, ArrowUpDown, Loader2, AlertTriangle, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 import useRtdbList from '@/hooks/use-rtdb-list';
@@ -35,10 +35,21 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription as UIDescription } from '@/components/ui/alert'; // Renamed to avoid conflict
 import { useDebounce } from '@/hooks/use-debounce';
 import {
   Sheet,
@@ -50,29 +61,30 @@ import {
   SheetClose
 } from "@/components/ui/sheet";
 import { useSetMobileHeaderActions } from '@/components/layout/app-layout';
+import { useAuth } from '@/context/AuthContext';
 
 
 interface IdeaItemProps {
   idea: Idea;
   onToggleStatus: (id: string, currentStatus: 'pending' | 'done') => void;
-  onDeleteIdea: (id: string) => void;
+  onDeleteIdeaTrigger: (id: string) => void; // Changed to trigger dialog
 }
 
-const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) => {
+const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdeaTrigger }: IdeaItemProps) => {
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col">
-      <CardHeader className="p-3 sm:p-4">
+      <CardHeader className="p-2 sm:p-3 md:p-4">
         <CardTitle className="text-sm sm:text-base break-words">{idea.text}</CardTitle>
         <CardDescription className="text-xs sm:text-sm">
           Category: <span className="font-medium text-primary">{idea.category || 'Uncategorized'}</span>
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow px-3 sm:px-4 pb-2 sm:pb-3">
+      <CardContent className="flex-grow px-2 sm:px-3 md:px-4 pb-1 sm:pb-2">
         <p className="text-xs text-muted-foreground">
           Created: {format(new Date(idea.createdAt), 'MMM d, yyyy HH:mm')}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-between items-center p-3 sm:p-4 pt-2 sm:pt-3 border-t">
+      <CardFooter className="flex justify-between items-center p-2 sm:p-3 md:p-4 pt-1 sm:pt-2 border-t">
         <div className="flex items-center space-x-2">
           <Checkbox
             id={`status-${idea.id}`}
@@ -84,8 +96,8 @@ const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) =>
             {idea.status === 'done' ? 'Done' : 'Pending'}
           </Label>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onDeleteIdea(idea.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm">
-          Delete
+        <Button variant="ghost" size="sm" onClick={() => onDeleteIdeaTrigger(idea.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm">
+           <Trash2 className="h-3 w-3 mr-1 sm:mr-2" /> Delete
         </Button>
       </CardFooter>
     </Card>
@@ -95,6 +107,7 @@ IdeaItem.displayName = 'IdeaItem';
 
 
 export default function IdeasPage() {
+  const { user } = useAuth(); // Get user for data scoping
   const { 
     items: ideas, 
     addItem: addIdeaToDb, 
@@ -102,7 +115,7 @@ export default function IdeasPage() {
     deleteItem: deleteIdeaFromDb, 
     loading: ideasLoading, 
     error: ideasError 
-  } = useRtdbList<Idea>('ideas');
+  } = useRtdbList<Idea>(user ? 'ideas' : ''); // Pass 'ideas' as base path, hook handles user scoping
   
   const [isClientLoaded, setIsClientLoaded] = useState(false);
   const [instantSearchTerm, setInstantSearchTerm] = useState('');
@@ -114,6 +127,10 @@ export default function IdeasPage() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [newIdeaText, setNewIdeaText] = useState('');
   const [newIdeaCategory, setNewIdeaCategory] = useState('');
+
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [ideaToDeleteId, setIdeaToDeleteId] = useState<string | null>(null);
+
   const { toast } = useToast();
   const setMobileHeaderActions = useSetMobileHeaderActions();
 
@@ -122,6 +139,10 @@ export default function IdeasPage() {
   }, []);
 
   const handleAddIdea = useCallback(async () => {
+    if (!user) {
+      toast({ title: "Authentication Error", description: "You must be logged in to add an idea.", variant: "destructive" });
+      return;
+    }
     if (!newIdeaText.trim()) {
       toast({ title: "Oops!", description: "Idea text cannot be empty.", variant: "destructive" });
       return;
@@ -131,6 +152,7 @@ export default function IdeasPage() {
       category: newIdeaCategory.trim() || 'Uncategorized',
       createdAt: new Date().toISOString(),
       status: 'pending',
+      // ownerUid: user.uid, // ownerUid is now implicit in the path via useRtdbList
     };
     try {
       await addIdeaToDb(newIdeaData);
@@ -152,15 +174,14 @@ export default function IdeasPage() {
         console.error("Firebase Error Stack:", e.stack);
       }
     }
-  }, [newIdeaText, newIdeaCategory, addIdeaToDb, toast]);
+  }, [newIdeaText, newIdeaCategory, addIdeaToDb, toast, user]);
 
-  // Effect to set mobile header actions
   useEffect(() => {
     if (setMobileHeaderActions) {
       const addIdeaButtonDialog = (
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogTrigger asChild>
-            <Button> {/* Default size button */}
+            <Button size="sm"> {/* Smaller button for header */}
               <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
             </Button>
           </DialogTrigger>
@@ -217,7 +238,7 @@ export default function IdeasPage() {
     setIsFormOpen, 
     newIdeaText, 
     newIdeaCategory, 
-    handleAddIdea // Also depends on setNewIdeaText, setNewIdeaCategory from handleAddIdea's scope
+    handleAddIdea
   ]);
 
 
@@ -272,10 +293,18 @@ export default function IdeasPage() {
     }
   }, [updateIdeaInDb, toast]);
   
-  const handleDeleteIdea = useCallback(async (id: string) => {
+  const handleDeleteIdeaTrigger = (id: string) => {
+    setIdeaToDeleteId(id);
+    setShowDeleteConfirmDialog(true);
+  };
+
+  const confirmDeleteIdea = useCallback(async () => {
+    if (!ideaToDeleteId) return;
     try {
-      await deleteIdeaFromDb(id);
+      await deleteIdeaFromDb(ideaToDeleteId);
       toast({ title: "Deleted!", description: "Idea removed.", variant: "destructive" });
+      setIdeaToDeleteId(null);
+      setShowDeleteConfirmDialog(false);
     } catch (e: any)
      {
       let description = "Failed to delete idea.";
@@ -287,8 +316,10 @@ export default function IdeasPage() {
       if (e && e.code) {
         console.error("Firebase Error Code:", e.code);
       }
+      setIdeaToDeleteId(null);
+      setShowDeleteConfirmDialog(false);
     }
-  }, [deleteIdeaFromDb, toast]);
+  }, [deleteIdeaFromDb, toast, ideaToDeleteId]);
 
   if (!isClientLoaded || ideasLoading) {
     return (
@@ -304,13 +335,24 @@ export default function IdeasPage() {
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Alert variant="destructive" className="max-w-md">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Error loading ideas: {ideasError.message}. Please ensure your Firebase configuration in /src/lib/firebase.ts is correct and the database is accessible.
-          </AlertDescription>
+          <UIDescription>
+            Error loading ideas: {ideasError.message}. Please ensure your Firebase configuration is correct and the database is accessible.
+          </UIDescription>
         </Alert>
       </div>
     );
   }
+  
+  if (!user && !ideasLoading) {
+     return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+        <AlertTriangle className="h-12 w-12 text-muted-foreground" />
+        <p className="mt-4 text-lg font-medium">Please Log In</p>
+        <p className="text-muted-foreground">You need to be logged in to view and manage ideas.</p>
+      </div>
+    );
+  }
+
 
   const desktopFilterControls = () => (
     <>
@@ -406,7 +448,7 @@ export default function IdeasPage() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 md:space-y-6">
       <div className="hidden md:block">
         <PageHeader
             title="Idea Tracker"
@@ -461,12 +503,10 @@ export default function IdeasPage() {
             }
         />
       </div>
-      {/* Mobile Add Idea button is now handled by AppLayout's mobileHeaderActions */}
 
 
       <Card className="shadow-sm">
-        <CardContent className="p-3 sm:p-4">
-          {/* Mobile: Search input always visible & Filter button */}
+        <CardContent className="p-2 sm:p-3 md:p-4">
           <div className="md:hidden space-y-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -502,7 +542,6 @@ export default function IdeasPage() {
             </Sheet>
           </div>
 
-          {/* Desktop filters */}
           <div className="hidden md:grid md:grid-cols-4 gap-4">
             {desktopFilterControls()}
           </div>
@@ -510,9 +549,9 @@ export default function IdeasPage() {
       </Card>
       
       {filteredAndSortedIdeas.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {filteredAndSortedIdeas.map(idea => (
-            <IdeaItem key={idea.id} idea={idea} onToggleStatus={handleToggleStatus} onDeleteIdea={handleDeleteIdea} />
+            <IdeaItem key={idea.id} idea={idea} onToggleStatus={handleToggleStatus} onDeleteIdeaTrigger={handleDeleteIdeaTrigger} />
           ))}
         </div>
       ) : (
@@ -523,7 +562,6 @@ export default function IdeasPage() {
             Click "Add Idea" to get started.
           </p>
            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            {/* This DialogTrigger is for the button in the empty state, not for the header */}
             <DialogTrigger asChild>
               <Button className="mt-4">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
@@ -570,7 +608,20 @@ export default function IdeasPage() {
           </Dialog>
         </div>
       )}
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this idea.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIdeaToDeleteId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteIdea}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-

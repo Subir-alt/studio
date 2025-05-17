@@ -10,13 +10,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState(''); // Added email state
   const [password, setPassword] = useState('');
   const { signIn, loading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // The email is now hardcoded in the AuthContext's signIn function
-    const user = await signIn(password); 
+    const user = await signIn(email, password); // Pass email and password
     if (user) {
       // The redirect is handled within the signIn function in AuthContext
     }
@@ -27,11 +27,22 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Welcome to Memoria!</CardTitle>
-          <CardDescription>Enter your shared password to access.</CardDescription>
+          <CardDescription>Enter your email and password to access.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email field is removed */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="text-base"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -51,7 +62,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col items-center text-center space-y-2 pt-6">
           <p className="text-sm text-muted-foreground">
-            This application uses a shared password.
+            Don't have an account? Please contact the administrator.
           </p>
         </CardFooter>
       </Card>

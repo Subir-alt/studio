@@ -13,12 +13,12 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-const SHARED_EMAIL = 'baniksubir@gmail.com'; // Hardcoded shared email
+// const SHARED_EMAIL = 'baniksubir@gmail.com'; // Hardcoded shared email - REMOVED
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (pass: string) => Promise<User | null>; // signIn now only takes password
+  signIn: (email: string, pass: string) => Promise<User | null>; // signIn now takes email and password
   signOut: () => Promise<void>;
 }
 
@@ -38,11 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signIn = async (pass: string): Promise<User | null> => { // Updated signature
+  const signIn = async (email: string, pass: string): Promise<User | null> => { // Updated signature
     setLoading(true);
     try {
-      // Use the hardcoded SHARED_EMAIL
-      const userCredential = await signInWithEmailAndPassword(auth, SHARED_EMAIL, pass);
+      // Use the provided email and password
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       setUser(userCredential.user);
       toast({ title: 'Success', description: 'Signed in successfully!' });
       router.push('/'); 
@@ -50,9 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       const authError = error as AuthError;
       console.error("Error signing in:", authError);
-      let description = 'Failed to sign in. Please check your password.';
-      if (authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
-        description = 'Incorrect password. Please try again.';
+      let description = 'Failed to sign in. Please check your credentials.';
+      if (authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential' || authError.code === 'auth/invalid-email') {
+        description = 'Incorrect email or password. Please try again.';
       } else if (authError.message) {
         description = authError.message;
       }
