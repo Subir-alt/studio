@@ -100,15 +100,17 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
 
     const trimmedCustomName = customName.trim();
     if (member && !trimmedCustomName) {
-      memberPayload.customName = null;
+      memberPayload.customName = null; // Explicitly set to null to remove it in Firebase
     } else if (trimmedCustomName) {
       memberPayload.customName = trimmedCustomName;
     }
+
 
     onSave(memberPayload, member?.id);
   };
 
   useEffect(() => {
+    // Auto-update to DiceBear avatar if realName changes and current avatar is placeholder or DiceBear
     if (!member || (member && (avatarUrl.startsWith('https://api.dicebear.com') || avatarUrl === DEFAULT_PLACEHOLDER_AVATAR || !avatarUrl))) {
       if (realName.trim()) {
         setAvatarUrl(generateDiceBearAvatar(realName.trim()));
@@ -223,26 +225,26 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col"
+      className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col p-1 sm:p-2"
       onClick={handleCardClick}
       data-ai-hint="family member"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
     >
-      <CardHeader className="items-center text-center p-2 sm:p-3">
-        <Avatar className="h-12 w-12 sm:h-16 sm:w-16 mb-1 sm:mb-2">
+      <CardHeader className="items-center text-center p-1 sm:p-2">
+        <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mb-1">
           <AvatarImage src={displayAvatarUrl} alt={displayName(member)} data-ai-hint="cartoon avatar" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
         <CardTitle className="text-xs sm:text-sm line-clamp-1">{displayName(member)}</CardTitle>
         {member.customName && <CardDescription className="text-[10px] sm:text-xs line-clamp-1">{member.realName}</CardDescription>}
       </CardHeader>
-      <CardFooter className="flex justify-end gap-1 p-1 sm:p-2 border-t mt-auto">
-          <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`} className="h-7 w-7 sm:h-8 sm:w-8">
+      <CardFooter className="flex justify-end gap-1 p-1 mt-auto border-t">
+          <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`} className="h-6 w-6 sm:h-7 sm:w-7">
             <Edit2 className="h-3 w-3" />
             <span className="sr-only">Edit</span>
           </Button>
-          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={handleDeleteClick} aria-label={`Delete ${displayName(member)}`}>
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-6 w-6 sm:h-7 sm:w-7" onClick={handleDeleteClick} aria-label={`Delete ${displayName(member)}`}>
             <Trash2 className="h-3 w-3" />
             <span className="sr-only">Delete</span>
           </Button>
@@ -320,7 +322,7 @@ export default function DiaryPage() {
   useEffect(() => {
     setIsClientLoaded(true);
   }, []);
-
+  
   const handleSaveMember = useCallback(async (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => {
     if (!user) {
       toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
@@ -493,10 +495,16 @@ export default function DiaryPage() {
 
   const notesForSelectedMember = useMemo(() => {
     if (!selectedMember) return [];
-    return diaryNotes
-      .filter(note => note.familyMemberId === selectedMember.id)
-      .filter(note => note.noteText.toLowerCase().includes(noteSearchTerm.toLowerCase()))
-      .sort((a, b) => {
+    let filteredNotes = diaryNotes.filter(note => note.familyMemberId === selectedMember.id);
+    
+    if (noteSearchTerm) {
+      const lowercasedNoteSearch = noteSearchTerm.toLowerCase();
+      filteredNotes = filteredNotes.filter(note => 
+        note.noteText.toLowerCase().includes(lowercasedNoteSearch)
+      );
+    }
+
+    return filteredNotes.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return noteSortOrder === 'newest' ? dateB - dateA : dateA - dateB;
@@ -690,20 +698,24 @@ export default function DiaryPage() {
           ) : (
              <div className="text-center py-10 rounded-lg bg-card border shadow-sm">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-medium">No notes for {displayName(selectedMember)} yet.</h3>
+              <h3 className="mt-4 text-lg font-medium">
+                {noteSearchTerm ? `No notes found for "${noteSearchTerm}"` : `No notes for ${displayName(selectedMember)} yet.`}
+              </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Click "Add Note" to write something down for them.
+                {noteSearchTerm ? "Try a different search term or clear the search." : `Click "Add Note" to write something down for them.`}
               </p>
-              <Dialog open={isNoteFormOpen} onOpenChange={setIsNoteFormOpen}>
-                <DialogTrigger asChild>
-                  <Button className="mt-4">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Note
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DiaryNoteForm familyMember={selectedMember} onSave={handleSaveNote} onClose={() => setIsNoteFormOpen(false)} />
-                </DialogContent>
-              </Dialog>
+              {!noteSearchTerm && (
+                <Dialog open={isNoteFormOpen} onOpenChange={setIsNoteFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="mt-4">
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Note
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DiaryNoteForm familyMember={selectedMember} onSave={handleSaveNote} onClose={() => setIsNoteFormOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           )}
         </div>
@@ -739,3 +751,4 @@ export default function DiaryPage() {
     </div>
   );
 }
+
