@@ -33,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useDebounce } from '@/hooks/use-debounce';
 
 const displayName = (member: FamilyMember | Omit<FamilyMember, 'id'> | Partial<FamilyMember>) => {
   if ('realName' in member && member.realName) {
@@ -161,7 +162,7 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onDeleteMember(member.id);
-  },[member.id, onDeleteMember]); // Corrected dependency
+  },[member.id, onDeleteMember]);
 
   return (
     <Card 
@@ -243,7 +244,8 @@ export default function DiaryPage() {
   const [isMemberFormOpen, setIsMemberFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [instantSearchTerm, setInstantSearchTerm] = useState('');
+  const searchTerm = useDebounce(instantSearchTerm, 300); // Debounced search term for notes
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
   const { toast } = useToast();
@@ -254,19 +256,18 @@ export default function DiaryPage() {
 
   const handleSaveMember = useCallback(async (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => {
     try {
-      if (id) { // Editing existing member
-        // Ensure realName is present for displayName, or provide a fallback for the toast
+      if (id) { 
         const nameForToast = (memberData.realName || editingMember?.realName) 
           ? displayName(memberData as Partial<FamilyMember>) 
           : "Member";
         await updateFamilyMemberInDb(id, memberData);
         toast({ title: "Success!", description: `Family member ${nameForToast} updated.` });
-      } else { // Adding new member
-        if (!memberData.realName) { // Should be caught by form validation, but as a safeguard
+      } else { 
+        if (!memberData.realName) { 
             toast({ title: "Error", description: "Real name is required to add a member.", variant: "destructive" });
             return;
         }
-        await addFamilyMemberToDb(memberData as Omit<FamilyMember, 'id'>); // Cast: add expects all non-ID fields
+        await addFamilyMemberToDb(memberData as Omit<FamilyMember, 'id'>); 
         toast({ title: "Success!", description: `Family member ${displayName(memberData as Partial<FamilyMember>)} added.` });
       }
       setIsMemberFormOpen(false);
@@ -308,12 +309,12 @@ export default function DiaryPage() {
         console.error("Firebase Error Code:", e.code);
       }
     }
-  }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember?.id, toast]); // Corrected selectedMember dependency
+  }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember, toast]);
   
   const handleEditMember = useCallback((memberToEdit: FamilyMember) => {
     setEditingMember(memberToEdit);
     setIsMemberFormOpen(true);
-  }, []);
+  }, []); // setEditingMember and setIsMemberFormOpen are stable
 
   const handleSaveNote = useCallback(async (noteData: Omit<DiaryNote, 'id' | 'familyMemberId' | 'createdAt'>) => {
     if (!selectedMember) {
@@ -363,13 +364,13 @@ export default function DiaryPage() {
     if (!selectedMember) return [];
     return diaryNotes
       .filter(note => note.familyMemberId === selectedMember.id)
-      .filter(note => note.noteText.toLowerCase().includes(searchTerm.toLowerCase()))
+      .filter(note => note.noteText.toLowerCase().includes(searchTerm.toLowerCase())) // Use debounced searchTerm
       .sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
       });
-  }, [selectedMember, diaryNotes, searchTerm, sortOrder]);
+  }, [selectedMember, diaryNotes, searchTerm, sortOrder]); // Dependency on debounced searchTerm
 
   const isLoading = familyMembersLoading || diaryNotesLoading;
   const RtdbError = familyMembersError || diaryNotesError;
@@ -493,8 +494,8 @@ export default function DiaryPage() {
                         <Input
                             type="search"
                             placeholder="Search notes..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            value={instantSearchTerm} // Use instantSearchTerm for input value
+                            onChange={(e) => setInstantSearchTerm(e.target.value)} // Update instantSearchTerm
                             className="pl-8 w-full"
                             aria-label="Search notes for selected member"
                         />

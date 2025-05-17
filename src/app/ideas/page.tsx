@@ -39,6 +39,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface IdeaItemProps {
   idea: Idea;
@@ -93,7 +94,8 @@ export default function IdeasPage() {
   } = useRtdbList<Idea>('ideas');
   
   const [isClientLoaded, setIsClientLoaded] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [instantSearchTerm, setInstantSearchTerm] = useState('');
+  const searchTerm = useDebounce(instantSearchTerm, 300); // Debounced search term
   const [statusFilter, setStatusFilter] = useState<IdeaStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -114,7 +116,7 @@ export default function IdeasPage() {
   const filteredAndSortedIdeas = useMemo(() => {
     let result = ideas;
 
-    if (searchTerm) {
+    if (searchTerm) { // Use debounced searchTerm
       result = result.filter(idea =>
         idea.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (idea.category && idea.category.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -136,7 +138,7 @@ export default function IdeasPage() {
     });
 
     return result;
-  }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]);
+  }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]); // Dependency on debounced searchTerm
 
   const handleAddIdea = useCallback(async () => {
     if (!newIdeaText.trim()) {
@@ -158,12 +160,15 @@ export default function IdeasPage() {
     } catch (e: any) {
       let description = "Failed to add idea.";
       if (e && e.message) {
-        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+        description += ` Details: ${e.message.substring(0, 200)}${e.message.length > 200 ? '...' : ''}`;
       }
       toast({ title: "Database Error", description, variant: "destructive" });
       console.error("Failed to add idea. Error object:", e);
       if (e && e.code) {
         console.error("Firebase Error Code:", e.code);
+      }
+       if (e && e.stack) {
+        console.error("Firebase Error Stack:", e.stack);
       }
     }
   }, [newIdeaText, newIdeaCategory, addIdeaToDb, toast]);
@@ -287,8 +292,8 @@ export default function IdeasPage() {
               <Input
                 type="search"
                 placeholder="Search ideas..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={instantSearchTerm} // Use instantSearchTerm for input value
+                onChange={(e) => setInstantSearchTerm(e.target.value)} // Update instantSearchTerm
                 className="pl-8 w-full"
                 aria-label="Search ideas"
               />
@@ -395,5 +400,3 @@ export default function IdeasPage() {
     </div>
   );
 }
-
-    
