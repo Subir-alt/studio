@@ -11,16 +11,17 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
-// Aggressively simplified metadata to troubleshoot hydration error
+// Aggressively simplified metadata to try and resolve any hydration errors
+// This ensures Next.js has minimal, valid data to construct the <head>
 export const metadata: Metadata = {
   title: 'Memoria',
   description: 'Personal Idea Tracker and Family Diary',
-  manifest: '/manifest.json',
-  themeColor: '#1A9EFF', // Single theme color
-  icons: {
-    icon: '/icons/icon-192x192.png', // Basic icon
-    apple: '/icons/icon-192x192.png', // Basic apple touch icon
-  },
+  manifest: '/manifest.json', // Ensure manifest.json is correct and icons exist
+  // themeColor: '#1A9EFF', // Keeping it minimal for now
+  // icons: { // Keeping it minimal
+  //   icon: '/icons/icon-192x192.png',
+  //   apple: '/icons/icon-192x192.png',
+  // },
 };
 
 export default function RootLayout({
@@ -30,7 +31,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* Ensure no <head> tag is manually placed here by RootLayout */}
+      {/* 
+        Ensure no <head> tag is manually placed here by RootLayout.
+        Next.js handles <head> generation based on the 'metadata' object exported above.
+        The 'suppressHydrationWarning' on <html> and <body> can help with minor mismatches,
+        but structural errors (like invalid children in <head>) need to be fixed by ensuring
+        the 'metadata' object is correctly formed and there's no manual <head> JSX here.
+      */}
       <body className={`${inter.variable} antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <AppLayout>
