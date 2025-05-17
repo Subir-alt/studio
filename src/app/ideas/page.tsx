@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
-import { Lightbulb, PlusCircle, Search, Filter, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react';
+import { Lightbulb, PlusCircle, Search, Filter as FilterIcon, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react'; // Renamed Filter to FilterIcon
 import { format } from 'date-fns';
 
 import useRtdbList from '@/hooks/use-rtdb-list';
@@ -40,6 +40,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDebounce } from '@/hooks/use-debounce';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose
+} from "@/components/ui/sheet";
+
 
 interface IdeaItemProps {
   idea: Idea;
@@ -50,18 +60,18 @@ interface IdeaItemProps {
 const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) => {
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col">
-      <CardHeader className="p-4 sm:p-5">
-        <CardTitle className="text-base sm:text-lg break-words">{idea.text}</CardTitle>
-        <CardDescription>
+      <CardHeader className="p-3 sm:p-4"> {/* Reduced padding on mobile */}
+        <CardTitle className="text-sm sm:text-base break-words">{idea.text}</CardTitle> {/* Adjusted font size */}
+        <CardDescription className="text-xs sm:text-sm"> {/* Adjusted font size */}
           Category: <span className="font-medium text-primary">{idea.category || 'Uncategorized'}</span>
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow px-4 sm:px-5 pb-3 sm:pb-4">
+      <CardContent className="flex-grow px-3 sm:px-4 pb-2 sm:pb-3"> {/* Reduced padding on mobile */}
         <p className="text-xs text-muted-foreground">
           Created: {format(new Date(idea.createdAt), 'MMM d, yyyy HH:mm')}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-between items-center p-4 sm:p-5 pt-3 sm:pt-4 border-t">
+      <CardFooter className="flex justify-between items-center p-3 sm:p-4 pt-2 sm:pt-3 border-t"> {/* Reduced padding on mobile */}
         <div className="flex items-center space-x-2">
           <Checkbox
             id={`status-${idea.id}`}
@@ -69,11 +79,11 @@ const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) =>
             onCheckedChange={() => onToggleStatus(idea.id, idea.status)}
             aria-label={`Mark idea as ${idea.status === 'done' ? 'pending' : 'done'}`}
           />
-          <Label htmlFor={`status-${idea.id}`} className="text-sm font-medium cursor-pointer">
+          <Label htmlFor={`status-${idea.id}`} className="text-xs sm:text-sm font-medium cursor-pointer"> {/* Adjusted font size */}
             {idea.status === 'done' ? 'Done' : 'Pending'}
           </Label>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onDeleteIdea(idea.id)} className="text-destructive hover:text-destructive">
+        <Button variant="ghost" size="sm" onClick={() => onDeleteIdea(idea.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm"> {/* Adjusted font size */}
           Delete
         </Button>
       </CardFooter>
@@ -100,6 +110,7 @@ export default function IdeasPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [newIdeaText, setNewIdeaText] = useState('');
   const [newIdeaCategory, setNewIdeaCategory] = useState('');
   const { toast } = useToast();
@@ -229,6 +240,67 @@ export default function IdeasPage() {
     );
   }
 
+  const filterControls = (inSheet: boolean = false) => (
+    <>
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search ideas..."
+          value={instantSearchTerm} 
+          onChange={(e) => setInstantSearchTerm(e.target.value)} 
+          className="pl-8 w-full"
+          aria-label="Search ideas"
+        />
+      </div>
+      
+      <div>
+        {inSheet && <Label htmlFor="status-filter-sheet" className="text-sm font-medium mb-1 block">Status</Label>}
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as IdeaStatus)}>
+          <SelectTrigger id={inSheet ? "status-filter-sheet" : "status-filter"} className="w-full" aria-label="Filter by status">
+            {!inSheet && <FilterIcon className="mr-2 h-4 w-4 inline-block" />}
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="done">Done</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        {inSheet && <Label htmlFor="category-filter-sheet" className="text-sm font-medium mb-1 block">Category</Label>}
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger id={inSheet ? "category-filter-sheet" : "category-filter"} className="w-full" aria-label="Filter by category">
+            {!inSheet && <FilterIcon className="mr-2 h-4 w-4 inline-block" />}
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            {categories.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <div>
+        {inSheet && <Label htmlFor="sort-order-sheet" className="text-sm font-medium mb-1 block">Sort Order</Label>}
+        <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+          <SelectTrigger id={inSheet ? "sort-order-sheet" : "sort-order"} className="w-full" aria-label="Sort by date">
+            <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
+            <SelectValue placeholder="Sort by date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest First</SelectItem>
+            <SelectItem value="oldest">Oldest First</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </>
+  );
+
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -285,54 +357,34 @@ export default function IdeasPage() {
       />
 
       <Card className="shadow-sm">
-        <CardContent className="p-3 sm:p-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search ideas..."
-                value={instantSearchTerm} 
-                onChange={(e) => setInstantSearchTerm(e.target.value)} 
-                className="pl-8 w-full"
-                aria-label="Search ideas"
-              />
-            </div>
-            
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as IdeaStatus)}>
-              <SelectTrigger className="w-full" aria-label="Filter by status">
-                 <Filter className="mr-2 h-4 w-4 inline-block" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full" aria-label="Filter by category">
-                <Filter className="mr-2 h-4 w-4 inline-block" />
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-              <SelectTrigger className="w-full" aria-label="Sort by date">
-                <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
-                <SelectValue placeholder="Sort by date" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent className="p-3 sm:p-4"> {/* Reduced padding on mobile */}
+          {/* Desktop filters */}
+          <div className="hidden md:grid md:grid-cols-4 gap-4">
+            {filterControls(false)}
+          </div>
+          {/* Mobile filter trigger & Sheet */}
+          <div className="md:hidden">
+            <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full justify-center">
+                  <FilterIcon className="mr-2 h-4 w-4" />
+                  Filters & Sort
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-lg">
+                <SheetHeader className="mb-4">
+                  <SheetTitle>Filter & Sort Ideas</SheetTitle>
+                </SheetHeader>
+                <div className="grid gap-4">
+                  {filterControls(true)}
+                </div>
+                <SheetFooter className="mt-6">
+                  <SheetClose asChild>
+                    <Button className="w-full">Done</Button>
+                  </SheetClose>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
         </CardContent>
       </Card>

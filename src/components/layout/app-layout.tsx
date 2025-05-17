@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter }
   from 'next/navigation';
-import { Flame, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react';
+import { Flame, LogIn, LogOut, UserCircle, Loader2, Menu } from 'lucide-react'; // Added Menu
 
 import { cn } from '@/lib/utils';
 import {
@@ -67,10 +67,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     // This part should ideally be covered by the useEffect redirect,
     // but as a fallback UI while redirecting:
     if (!user) {
+       React.useEffect(() => {
+        router.replace('/login');
+      }, [router]);
       return (
         <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="ml-2">Redirecting to login...</p>
+          <Loader2 className="mr-2 h-12 w-12 animate-spin text-primary" />
+          <p>Redirecting to login...</p>
         </div>
       );
     }
@@ -182,9 +185,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="p-3 sm:p-4 md:p-6">
-        <div className="flex items-center justify-between md:hidden mb-4">
-          <SidebarTrigger />
+      <SidebarInset className="p-2 sm:p-3 md:p-4"> {/* Reduced padding for smallest screens */}
+        <div className="flex items-center justify-between md:hidden mb-2 sm:mb-4">
+          <SidebarTrigger>
+            <Menu /> {/* Changed icon here */}
+          </SidebarTrigger>
         </div>
         {children}
         <InstallPwaButton />
