@@ -102,7 +102,6 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-inter), sans-serif; /* Apply Inter font with fallback */
+    @apply bg-background text-foreground font-sans;
   }
 }
