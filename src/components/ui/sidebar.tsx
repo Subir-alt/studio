@@ -1,16 +1,17 @@
+
 "use client"
 
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { Menu as MenuIconLucide, PanelLeft } from "lucide-react" // PanelLeft was already there for desktop trigger
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet" // Added SheetHeader, SheetTitle
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Tooltip,
@@ -206,7 +207,12 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <div className="flex h-full w-full flex-col">{children}</div>
+            <SheetHeader className="sr-only"> {/* Visually hidden but accessible */}
+              <SheetTitle>Main Menu</SheetTitle>
+            </SheetHeader>
+            <div className="flex h-full w-full flex-col overflow-y-auto">
+                {children}
+            </div>
           </SheetContent>
         </Sheet>
       )
@@ -261,6 +267,42 @@ Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
+  React.ComponentProps<typeof Button> & { icon?: React.ElementType }
+>(({ className, onClick, icon: Icon, ...props }, ref) => {
+  const { toggleSidebar } = useSidebar();
+  const DefaultIcon = () => ( // Define default icon inline
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  );
+  const TriggerIcon = Icon || DefaultIcon;
+
+
+  return (
+    <Button
+      ref={ref}
+      data-sidebar="trigger"
+      variant="ghost"
+      size="icon"
+      className={cn("h-7 w-7 md:hidden", className)} // Only show on mobile by default for this specific trigger in AppLayout
+      onClick={(event) => {
+        onClick?.(event)
+        toggleSidebar()
+      }}
+      {...props}
+    >
+      <TriggerIcon />
+      <span className="sr-only">Toggle Sidebar</span>
+    </Button>
+  )
+})
+SidebarTrigger.displayName = "SidebarTrigger"
+
+// Keep the desktop sidebar trigger separate if needed or adjust its visibility
+const DesktopSidebarTrigger = React.forwardRef<
+  React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
@@ -271,7 +313,7 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-7 w-7", className)}
+      className={cn("hidden h-7 w-7 md:flex", className)} // Only show on desktop
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
@@ -283,7 +325,8 @@ const SidebarTrigger = React.forwardRef<
     </Button>
   )
 })
-SidebarTrigger.displayName = "SidebarTrigger"
+DesktopSidebarTrigger.displayName = "DesktopSidebarTrigger"
+
 
 const SidebarRail = React.forwardRef<
   HTMLButtonElement,
@@ -759,5 +802,8 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  DesktopSidebarTrigger, // Export if you intend to use it separately
   useSidebar,
 }
+
+    
