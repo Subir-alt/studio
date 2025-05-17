@@ -1,6 +1,6 @@
 
 import type { LucideIcon } from 'lucide-react';
-import { Lightbulb, BookHeart } from 'lucide-react'; // Removed CalendarClock
+import { Lightbulb, BookHeart, ClipboardList } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -23,5 +23,10 @@ export const navItems: NavItem[] = [
     icon: BookHeart,
     label: 'Diary',
   },
-  // Reminders section removed
+  {
+    title: 'Common Notes',
+    href: '/common-notes',
+    icon: ClipboardList,
+    label: 'Common',
+  },
 ];

@@ -21,8 +21,14 @@ export interface DiaryNote {
   createdAt: string; // ISO string date
 }
 
-// Reminder interface removed
+export interface CommonNote {
+  id: string;
+  text: string;
+  createdAt: string; // ISO string date
+  createdByUid: string;
+  creatorDisplayName: string;
+  updatedAt?: string; // Optional: For last edit time
+}
 
 export type IdeaStatus = 'all' | 'pending' | 'done';
-// Simplified SortOrder as reminder-specific sorts are no longer needed
 export type SortOrder = 'newest' | 'oldest';
