@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter }
   from 'next/navigation';
-import { Flame, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react';
+import { Flame, LogIn, LogOut, UserCircle, Loader2, Menu } from 'lucide-react'; // Added Menu
 
 import { cn } from '@/lib/utils';
 import {
@@ -73,7 +73,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
-  if (pathname !== '/') {
+  if (pathname !== '/') { // Only apply loading/redirect logic to non-root, non-auth pages
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
@@ -82,13 +82,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       );
     }
     if (!user) {
-       React.useEffect(() => {
-        // This useEffect is now redundant due to the one at the top of AppLayout
-        // but kept for safety in case of direct navigation to a protected route before initial loading state resolves.
-        if (typeof window !== 'undefined') { // Ensure router is available
-          router.replace('/login');
-        }
-      }, [router]); 
+      // The useEffect hook that was here (causing the error) has been removed.
+      // The primary redirect logic is handled by the useEffect above.
+      // This return is a fallback UI while the redirect takes place.
       return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="mr-2 h-12 w-12 animate-spin text-primary" />
@@ -103,10 +99,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <MobileHeaderActionsContext.Provider value={setMobileHeaderActions}>
       <SidebarProvider defaultOpen>
         <Sidebar className="border-r" collapsible="icon">
-          <SidebarHeader className="p-4">
+          <SidebarHeader className="p-2 sm:p-4">
             <Link href="/" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-              <Flame className="h-7 w-7 text-primary" />
-              <span className="text-xl font-semibold group-data-[collapsible=icon]:hidden">Memoria</span>
+              <Flame className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+              <span className="text-lg sm:text-xl font-semibold group-data-[collapsible=icon]:hidden">Memoria</span>
             </Link>
           </SidebarHeader>
           <SidebarContent className="p-2">
@@ -120,8 +116,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       tooltip={{ children: item.title, className: "ml-2" }}
                     >
                       <a>
-                        <item.icon />
-                        <span>{item.title}</span>
+                        <item.icon className="h-4 w-4 sm:h-auto"/>
+                        <span className="text-sm sm:text-base">{item.title}</span>
                       </a>
                     </SidebarMenuButton>
                   </Link>
@@ -205,7 +201,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </SidebarFooter>
         </Sidebar>
-        <SidebarInset className="p-2 sm:p-3 md:p-4">
+        <SidebarInset className="p-2 sm:p-3">
           <div className="flex items-center justify-between md:hidden mb-3 sm:mb-4 gap-3">
             <div className="flex items-center gap-3">
               <SidebarTrigger>
