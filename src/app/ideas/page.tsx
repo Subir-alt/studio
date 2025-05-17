@@ -49,6 +49,7 @@ import {
   SheetFooter,
   SheetClose
 } from "@/components/ui/sheet";
+import { useSetMobileHeaderActions } from '@/components/layout/app-layout';
 
 
 interface IdeaItemProps {
@@ -114,42 +115,11 @@ export default function IdeasPage() {
   const [newIdeaText, setNewIdeaText] = useState('');
   const [newIdeaCategory, setNewIdeaCategory] = useState('');
   const { toast } = useToast();
+  const setMobileHeaderActions = useSetMobileHeaderActions();
 
   useEffect(() => {
     setIsClientLoaded(true);
   }, []);
-
-  const categories = useMemo(() => {
-    const uniqueCategories = Array.from(new Set(ideas.map(idea => idea.category).filter(Boolean)));
-    return ['all', ...uniqueCategories.sort((a, b) => (a as string).localeCompare(b as string))];
-  }, [ideas]);
-
-  const filteredAndSortedIdeas = useMemo(() => {
-    let result = ideas;
-
-    if (searchTerm) { 
-      result = result.filter(idea =>
-        idea.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (idea.category && idea.category.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    if (statusFilter !== 'all') {
-      result = result.filter(idea => idea.status === statusFilter);
-    }
-
-    if (categoryFilter !== 'all') {
-      result = result.filter(idea => idea.category === categoryFilter);
-    }
-
-    result.sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-
-    return result;
-  }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]); 
 
   const handleAddIdea = useCallback(async () => {
     if (!newIdeaText.trim()) {
@@ -184,6 +154,107 @@ export default function IdeasPage() {
     }
   }, [newIdeaText, newIdeaCategory, addIdeaToDb, toast]);
 
+  // Effect to set mobile header actions
+  useEffect(() => {
+    if (setMobileHeaderActions) {
+      const addIdeaButtonDialog = (
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogTrigger asChild>
+            <Button> {/* Default size button */}
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Idea</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="idea-text-dialog" className="text-right">
+                  Idea
+                </Label>
+                <Textarea
+                  id="idea-text-dialog"
+                  value={newIdeaText}
+                  onChange={(e) => setNewIdeaText(e.target.value)}
+                  className="col-span-3"
+                  placeholder="What's your new idea?"
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="idea-category-dialog" className="text-right">
+                  Category
+                </Label>
+                <Input
+                  id="idea-category-dialog"
+                  value={newIdeaCategory}
+                  onChange={(e) => setNewIdeaCategory(e.target.value)}
+                  className="col-span-3"
+                  placeholder="e.g., Work, Personal (Optional)"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <Button onClick={handleAddIdea}>Save Idea</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      );
+      setMobileHeaderActions(addIdeaButtonDialog);
+    }
+    return () => {
+      if (setMobileHeaderActions) {
+        setMobileHeaderActions(null);
+      }
+    };
+  }, [
+    setMobileHeaderActions, 
+    isFormOpen, 
+    setIsFormOpen, 
+    newIdeaText, 
+    newIdeaCategory, 
+    handleAddIdea // Also depends on setNewIdeaText, setNewIdeaCategory from handleAddIdea's scope
+  ]);
+
+
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(ideas.map(idea => idea.category).filter(Boolean)));
+    return ['all', ...uniqueCategories.sort((a, b) => (a as string).localeCompare(b as string))];
+  }, [ideas]);
+
+  const filteredAndSortedIdeas = useMemo(() => {
+    let result = ideas;
+
+    if (searchTerm) { 
+      result = result.filter(idea =>
+        idea.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (idea.category && idea.category.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      result = result.filter(idea => idea.status === statusFilter);
+    }
+
+    if (categoryFilter !== 'all') {
+      result = result.filter(idea => idea.category === categoryFilter);
+    }
+
+    result.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [ideas, searchTerm, statusFilter, categoryFilter, sortOrder]); 
+
+  
+
   const handleToggleStatus = useCallback(async (id: string, currentStatus: 'pending' | 'done') => {
     try {
       await updateIdeaInDb(id, { status: currentStatus === 'pending' ? 'done' : 'pending' });
@@ -205,7 +276,8 @@ export default function IdeasPage() {
     try {
       await deleteIdeaFromDb(id);
       toast({ title: "Deleted!", description: "Idea removed.", variant: "destructive" });
-    } catch (e: any) {
+    } catch (e: any)
+     {
       let description = "Failed to delete idea.";
       if (e && e.message) {
         description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
@@ -353,11 +425,11 @@ export default function IdeasPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="idea-text" className="text-right">
+                    <Label htmlFor="idea-text-desktop" className="text-right">
                         Idea
                     </Label>
                     <Textarea
-                        id="idea-text"
+                        id="idea-text-desktop"
                         value={newIdeaText}
                         onChange={(e) => setNewIdeaText(e.target.value)}
                         className="col-span-3"
@@ -366,11 +438,11 @@ export default function IdeasPage() {
                     />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="idea-category" className="text-right">
+                    <Label htmlFor="idea-category-desktop" className="text-right">
                         Category
                     </Label>
                     <Input
-                        id="idea-category"
+                        id="idea-category-desktop"
                         value={newIdeaCategory}
                         onChange={(e) => setNewIdeaCategory(e.target.value)}
                         className="col-span-3"
@@ -389,54 +461,7 @@ export default function IdeasPage() {
             }
         />
       </div>
-       {/* Add Idea button for mobile, placed near filter/search for context */}
-      <div className="md:hidden flex justify-end mb-3">
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-            <Button size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
-            </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-                <DialogTitle>Add New Idea</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="idea-text-mobile" className="text-right">
-                    Idea
-                </Label>
-                <Textarea
-                    id="idea-text-mobile"
-                    value={newIdeaText}
-                    onChange={(e) => setNewIdeaText(e.target.value)}
-                    className="col-span-3"
-                    placeholder="What's your new idea?"
-                    rows={3}
-                />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="idea-category-mobile" className="text-right">
-                    Category
-                </Label>
-                <Input
-                    id="idea-category-mobile"
-                    value={newIdeaCategory}
-                    onChange={(e) => setNewIdeaCategory(e.target.value)}
-                    className="col-span-3"
-                    placeholder="e.g., Work, Personal (Optional)"
-                />
-                </div>
-            </div>
-            <DialogFooter>
-                <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button onClick={handleAddIdea}>Save Idea</Button>
-            </DialogFooter>
-            </DialogContent>
-        </Dialog>
-      </div>
+      {/* Mobile Add Idea button is now handled by AppLayout's mobileHeaderActions */}
 
 
       <Card className="shadow-sm">
@@ -498,6 +523,7 @@ export default function IdeasPage() {
             Click "Add Idea" to get started.
           </p>
            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+            {/* This DialogTrigger is for the button in the empty state, not for the header */}
             <DialogTrigger asChild>
               <Button className="mt-4">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
