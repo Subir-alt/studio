@@ -14,31 +14,43 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Memoria',
   description: 'Personal Idea Tracker and Family Diary',
-  manifest: '/manifest.json', // Link to the manifest file
-  themeColor: '#B0E2FF',      // Theme color based on primary
+  manifest: '/manifest.json', // This is the most crucial link for PWA
+  formatDetection: {
+    telephone: false, // Good for mobile UX
+  },
+  themeColor: [ // Provides theme colors for light and dark modes
+    { media: '(prefers-color-scheme: light)', color: '#B0E2FF' }, // Your primary light theme color
+    { media: '(prefers-color-scheme: dark)', color: '#18181b' },  // A generic dark theme color (Tailwind zinc-900)
+  ],
   icons: {
-    apple: '/icons/icon-192x192.png', // Main icon for Apple's "Add to Home Screen"
-    // You can add more specific Apple icon sizes here if needed, e.g.:
-    // { rel: 'apple-touch-icon', sizes: '180x180', url: '/icons/icon-180x180.png' }
+    icon: [ // General purpose icons, can be used for favicon etc.
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: ['/icons/icon-96x96.png'], // For browser shortcuts or bookmarks
+    apple: [ // For Apple 'Add to Home Screen' and touch icons
+      { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    // You can add more specific icon types here if needed, like 'other' for favicons
+    // other: [
+    //   { rel: 'icon', url: '/favicon.ico' }, // If you had a favicon.ico
+    // ],
   },
   appleWebApp: {
-    capable: true, // Indicates the web app is designed to look and feel like a native app when added to home screen
-    title: "Memoria", // The name that appears under the icon on the home screen
+    capable: true, // Indicates the web app is designed for a native-like experience
+    title: "Memoria", // The name that appears under the icon on the iOS home screen
     statusBarStyle: 'default', // Options: 'default', 'black', 'black-translucent'
-    // startupImage: [ // Optional: define splash screens for different device sizes
-    //   // Example: '/icons/apple-splash-2048x2732.png',
+    // startupImage: [ // Optional: Define splash screens for different iOS device sizes
+    //   // Example (you would need to create these image files):
     //   // {
-    //   //   url: '/splash/ipad_splash.png',
-    //   //   media: '(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)',
+    //   //   url: '/icons/apple-splash-2048x2732.png', 
+    //   //   media: '(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)',
     //   // },
     // ],
   },
-  // For other PWA related meta tags, if not directly supported by `Metadata` type,
-  // you might need to use `other` or add them directly if Next.js doesn't cover them.
-  // e.g. for older Android:
-  // other: {
-  //   'mobile-web-app-capable': 'yes',
-  // }
+  // Viewport is usually handled by Next.js but explicit definition doesn't hurt.
+  // viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
 };
 
 export default function RootLayout({
