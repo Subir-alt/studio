@@ -256,35 +256,6 @@ export default function DiaryPage() {
     setIsClientLoaded(true);
   }, []);
 
-  // Effect to set mobile header actions for "Add Member"
-  useEffect(() => {
-    if (setMobileHeaderActions) {
-      const addMemberButtonDialog = (
-        <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
-          <DialogTrigger asChild>
-            <Button size="sm"> {/* Smaller button for header */}
-              <Users className="mr-2 h-4 w-4" /> Add Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <FamilyMemberForm
-              member={editingMember || undefined}
-              onSave={handleSaveMember}
-              onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }}
-            />
-          </DialogContent>
-        </Dialog>
-      );
-      setMobileHeaderActions(addMemberButtonDialog);
-    }
-    return () => {
-      if (setMobileHeaderActions) {
-        setMobileHeaderActions(null);
-      }
-    };
-  }, [setMobileHeaderActions, isMemberFormOpen, setIsMemberFormOpen, editingMember, setEditingMember, handleSaveMember]);
-
-
   const handleSaveMember = useCallback(async (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => {
     try {
       if (id) { 
@@ -317,7 +288,37 @@ export default function DiaryPage() {
         console.error("Firebase Error Stack:", e.stack);
       }
     }
-  }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast, editingMember]);
+  }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast, editingMember, setIsMemberFormOpen, setEditingMember]);
+
+
+  // Effect to set mobile header actions for "Add Member"
+  useEffect(() => {
+    if (setMobileHeaderActions) {
+      const addMemberButtonDialog = (
+        <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
+          <DialogTrigger asChild>
+            <Button size="sm"> {/* Smaller button for header */}
+              <Users className="mr-2 h-4 w-4" /> Add Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <FamilyMemberForm
+              member={editingMember || undefined}
+              onSave={handleSaveMember}
+              onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }}
+            />
+          </DialogContent>
+        </Dialog>
+      );
+      setMobileHeaderActions(addMemberButtonDialog);
+    }
+    return () => {
+      if (setMobileHeaderActions) {
+        setMobileHeaderActions(null);
+      }
+    };
+  }, [setMobileHeaderActions, isMemberFormOpen, setIsMemberFormOpen, editingMember, setEditingMember, handleSaveMember]);
+
 
   const handleDeleteMember = useCallback(async (memberId: string) => {
     const notesToDelete = diaryNotes.filter(note => note.familyMemberId === memberId);
@@ -581,3 +582,5 @@ export default function DiaryPage() {
   );
 }
 
+
+    
