@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter }
   from 'next/navigation';
-import { Flame, LogIn, LogOut, UserCircle, Loader2, Menu } from 'lucide-react'; // Added Menu
+import { Flame, LogIn, LogOut, UserCircle, Loader2, Menu, KeyRound } from 'lucide-react'; // Added Menu, KeyRound
 
 import { cn } from '@/lib/utils';
 import {
@@ -22,8 +22,19 @@ import {
 } from '@/components/ui/sidebar';
 import { navItems, type NavItem } from './sidebar-nav-items';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input'; // For Change Password Dialog
+import { Label } from '@/components/ui/label'; // For Change Password Dialog
 import { useAuth } from '@/context/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog, // For Change Password Dialog
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +44,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import InstallPwaButton from '@/components/pwa/InstallPwaButton';
+import { useToast } from '@/hooks/use-toast'; // For Change Password feedback
+
 
 // Custom SVG Hamburger Icon
 const HamburgerIcon = () => (
@@ -50,11 +63,93 @@ export function useSetMobileHeaderActions() {
   return React.useContext(MobileHeaderActionsContext);
 }
 
+// Change Password Dialog Component
+function ChangePasswordDialogContent({ onClose }: { onClose: () => void }) {
+  const { changeUserPassword, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const [newPassword, setNewPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword) {
+      toast({ title: "Error", description: "New password cannot be empty.", variant: "destructive" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match.", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters long.", variant: "destructive" });
+      return;
+    }
+
+    const success = await changeUserPassword(newPassword);
+    if (success) {
+      setNewPassword('');
+      setConfirmPassword('');
+      onClose(); // Close dialog on success
+    }
+  };
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Change Password</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="newPassword" className="text-right col-span-1">
+              New Password
+            </Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="col-span-3"
+              placeholder="Enter new password"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="confirmPassword" className="text-right col-span-1">
+              Confirm Password
+            </Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="col-span-3"
+              placeholder="Confirm new password"
+              required
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          </DialogClose>
+          <Button type="submit" disabled={authLoading}>
+            {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </>
+  );
+}
+
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const [mobileHeaderActions, setMobileHeaderActions] = React.useState<React.ReactNode>(null);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = React.useState(false);
+
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
@@ -73,7 +168,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
   
-  if (pathname !== '/') { // Only apply loading/redirect logic to non-root, non-auth pages
+  if (pathname !== '/') {
     if (loading) {
       return (
         <div className="flex items-center justify-center min-h-screen">
@@ -81,18 +176,32 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
+    // The conditional useEffect for redirecting if !user was removed as per previous fix for hook order error.
+    // The main useEffect hook above handles the necessary redirection logic.
+    // Fallback UI if redirect hasn't completed (e.g. user directly navigated to a protected route)
     if (!user) {
-      // The useEffect hook that was here (causing the error) has been removed.
-      // The primary redirect logic is handled by the useEffect above.
-      // This return is a fallback UI while the redirect takes place.
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="mr-2 h-12 w-12 animate-spin text-primary" />
-          <p>Redirecting to login...</p>
-        </div>
-      );
+        return (
+          <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="mr-2 h-12 w-12 animate-spin text-primary" />
+            <p>Redirecting to login...</p>
+          </div>
+        );
     }
   }
+
+  const userDropdownContent = (
+    <>
+      <DropdownMenuItem onClick={() => setIsChangePasswordDialogOpen(true)}>
+        <KeyRound className="mr-2 h-4 w-4" />
+        <span>Change Password</span>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={() => useAuth().signOut()}> {/* Directly call signOut from useAuth() */}
+        <LogOut className="mr-2 h-4 w-4" />
+        <span>Logout</span>
+      </DropdownMenuItem>
+    </>
+  );
 
 
   return (
@@ -146,10 +255,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuContent className="w-56 mb-2 ml-2" side="top" align="start">
                     <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Logout</span>
-                    </DropdownMenuItem>
+                    {userDropdownContent}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
@@ -178,10 +284,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuContent className="mb-2 ml-2" side="right" align="center">
                     <DropdownMenuLabel>{user.displayName || user.email}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Logout</span>
-                    </DropdownMenuItem>
+                     {userDropdownContent}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
@@ -219,6 +322,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <InstallPwaButton />
         </SidebarInset>
       </SidebarProvider>
+      <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
+        <DialogContent>
+          <ChangePasswordDialogContent onClose={() => setIsChangePasswordDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </MobileHeaderActionsContext.Provider>
   );
 }

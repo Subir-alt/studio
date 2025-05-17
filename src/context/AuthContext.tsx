@@ -8,18 +8,18 @@ import {
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut,
+  updatePassword, // Import updatePassword
   type AuthError
 } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
-// const SHARED_EMAIL = 'baniksubir@gmail.com'; // Hardcoded shared email - REMOVED
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, pass: string) => Promise<User | null>; // signIn now takes email and password
+  signIn: (email: string, pass: string) => Promise<User | null>;
   signOut: () => Promise<void>;
+  changeUserPassword: (newPassword: string) => Promise<boolean>; // Added new method
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,10 +38,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signIn = async (email: string, pass: string): Promise<User | null> => { // Updated signature
+  const signIn = async (email: string, pass: string): Promise<User | null> => {
     setLoading(true);
     try {
-      // Use the provided email and password
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
       setUser(userCredential.user);
       toast({ title: 'Success', description: 'Signed in successfully!' });
@@ -79,8 +78,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const changeUserPassword = async (newPassword: string): Promise<boolean> => {
+    if (!auth.currentUser) {
+      toast({ title: 'Error', description: 'No user is currently signed in.', variant: 'destructive' });
+      return false;
+    }
+    setLoading(true);
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+      toast({ title: 'Success', description: 'Password updated successfully.' });
+      setLoading(false);
+      return true;
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error("Error changing password:", authError);
+      let description = 'Failed to change password.';
+      if (authError.code === 'auth/weak-password') {
+        description = 'The new password is too weak. Please choose a stronger password (at least 6 characters).';
+      } else if (authError.code === 'auth/requires-recent-login') {
+        description = 'This operation is sensitive and requires recent authentication. Please sign out and sign back in to change your password.';
+      } else if (authError.message) {
+        description = authError.message;
+      }
+      toast({ title: 'Password Change Error', description, variant: 'destructive' });
+      setLoading(false);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, changeUserPassword }}>
       {children}
     </AuthContext.Provider>
   );
