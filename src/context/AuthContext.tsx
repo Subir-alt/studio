@@ -6,7 +6,6 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { auth } from '@/lib/firebase';
 import { 
   onAuthStateChanged, 
-  // createUserWithEmailAndPassword, // Removed as signup is disabled
   signInWithEmailAndPassword, 
   signOut as firebaseSignOut,
   type AuthError
@@ -14,11 +13,12 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 
+const SHARED_EMAIL = 'baniksubir@gmail.com'; // Hardcoded shared email
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  // signUp: (email: string, pass: string) => Promise<User | null>; // signUp function removed
-  signIn: (email: string, pass: string) => Promise<User | null>;
+  signIn: (pass: string) => Promise<User | null>; // signIn now only takes password
   signOut: () => Promise<void>;
 }
 
@@ -38,37 +38,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // signUp function is removed as per new requirements
-  // const signUp = async (email: string, pass: string): Promise<User | null> => {
-  //   setLoading(true);
-  //   try {
-  //     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-  //     setUser(userCredential.user);
-  //     toast({ title: 'Success', description: 'Account created successfully!' });
-  //     router.push('/'); 
-  //     return userCredential.user;
-  //   } catch (error) {
-  //     const authError = error as AuthError;
-  //     console.error("Error signing up:", authError);
-  //     toast({ title: 'Sign Up Error', description: authError.message || 'Failed to create account.', variant: 'destructive' });
-  //     return null;
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  const signIn = async (email: string, pass: string): Promise<User | null> => {
+  const signIn = async (pass: string): Promise<User | null> => { // Updated signature
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      // Use the hardcoded SHARED_EMAIL
+      const userCredential = await signInWithEmailAndPassword(auth, SHARED_EMAIL, pass);
       setUser(userCredential.user);
       toast({ title: 'Success', description: 'Signed in successfully!' });
-      router.push('/'); // Redirect to home or dashboard after sign in
+      router.push('/'); 
       return userCredential.user;
     } catch (error) {
       const authError = error as AuthError;
       console.error("Error signing in:", authError);
-      toast({ title: 'Sign In Error', description: authError.message || 'Failed to sign in. Please check your credentials.', variant: 'destructive' });
+      let description = 'Failed to sign in. Please check your password.';
+      if (authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
+        description = 'Incorrect password. Please try again.';
+      } else if (authError.message) {
+        description = authError.message;
+      }
+      toast({ title: 'Sign In Error', description, variant: 'destructive' });
       return null;
     } finally {
       setLoading(false);
@@ -81,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await firebaseSignOut(auth);
       setUser(null);
       toast({ title: 'Signed Out', description: 'You have been signed out.' });
-      router.push('/login'); // Redirect to login page after sign out
+      router.push('/login'); 
     } catch (error) {
       const authError = error as AuthError;
       console.error("Error signing out:", authError);

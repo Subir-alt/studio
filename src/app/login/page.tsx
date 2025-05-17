@@ -2,10 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-// Link component is no longer needed here as we remove the signup link
-// import Link from 'next/link';
-// useRouter is not directly used in this simplified version for navigation actions, AuthContext handles it.
-// import { useRouter } from 'next/navigation'; 
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,14 +10,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { signIn, loading } = useAuth();
-  // const router = useRouter(); // Not used directly for navigation here
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = await signIn(email, password);
+    // The email is now hardcoded in the AuthContext's signIn function
+    const user = await signIn(password); 
     if (user) {
       // The redirect is handled within the signIn function in AuthContext
     }
@@ -31,23 +26,12 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Welcome Back!</CardTitle>
-          <CardDescription>Sign in to access your Memoria.</CardDescription>
+          <CardTitle className="text-3xl font-bold">Welcome to Memoria!</CardTitle>
+          <CardDescription>Enter your shared password to access.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="text-base"
-              />
-            </div>
+            {/* Email field is removed */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -67,7 +51,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col items-center text-center space-y-2 pt-6">
           <p className="text-sm text-muted-foreground">
-            This application uses shared login credentials.
+            This application uses a shared password.
           </p>
         </CardFooter>
       </Card>
