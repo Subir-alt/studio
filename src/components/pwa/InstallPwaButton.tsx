@@ -7,16 +7,19 @@ import { Download } from 'lucide-react';
 
 const InstallPwaButton = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null); // Use 'any' for Event type flexibility
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [canInstall, setCanInstall] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true); // Signal that component has mounted
+
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
       // Update UI to show the install button
-      setIsInstallable(true);
+      setCanInstall(true);
       console.log('beforeinstallprompt event fired');
     };
 
@@ -25,7 +28,7 @@ const InstallPwaButton = () => {
     // Listener for when the app is successfully installed
     window.addEventListener('appinstalled', () => {
       console.log('PWA was installed');
-      setIsInstallable(false);
+      setCanInstall(false);
       setDeferredPrompt(null);
     });
 
@@ -49,12 +52,12 @@ const InstallPwaButton = () => {
     console.log(`User response to the install prompt: ${outcome}`);
     // We've used the prompt, and can't use it again, discard it
     if (outcome === 'accepted') {
-        setIsInstallable(false);
+        setCanInstall(false);
     }
     setDeferredPrompt(null);
   };
 
-  if (!isInstallable) {
+  if (!mounted || !canInstall) {
     return null;
   }
 

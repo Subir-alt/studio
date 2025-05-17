@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useSetMobileHeaderActions } from '@/components/layout/app-layout';
 
 const displayName = (member: FamilyMember | Omit<FamilyMember, 'id'> | Partial<FamilyMember>) => {
   if ('realName' in member && member.realName) {
@@ -166,28 +167,28 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-xl transition-shadow duration-200 flex flex-col"
+      className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col"
       onClick={handleCardClick}
       data-ai-hint="family member"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
     >
-      <CardHeader className="items-center text-center p-3 sm:p-4">
-        <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mb-2">
+      <CardHeader className="items-center text-center p-2 sm:p-3">
+        <Avatar className="h-12 w-12 sm:h-16 sm:w-16 mb-1 sm:mb-2">
           <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="person portrait" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
-        <CardTitle className="text-sm sm:text-base">{displayName(member)}</CardTitle>
-        {member.customName && <CardDescription className="text-xs sm:text-sm">{member.realName}</CardDescription>}
+        <CardTitle className="text-xs sm:text-sm line-clamp-1">{displayName(member)}</CardTitle>
+        {member.customName && <CardDescription className="text-[10px] sm:text-xs line-clamp-1">{member.realName}</CardDescription>}
       </CardHeader>
-      <CardContent className="flex-grow px-3 sm:px-4 pb-0"></CardContent>
-      <CardFooter className="flex justify-end gap-1 p-2 sm:p-3 border-t">
-          <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`}>
-            <Edit2 className="h-3 w-3 sm:h-4 sm:w-4" />
+      <CardContent className="px-2 sm:px-3 pb-0"></CardContent> {/* Removed flex-grow */}
+      <CardFooter className="flex justify-end gap-1 p-1 sm:p-2 border-t mt-auto"> {/* Added mt-auto */}
+          <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`} className="h-7 w-7 sm:h-8 sm:w-8">
+            <Edit2 className="h-3 w-3" />
             <span className="sr-only">Edit</span>
           </Button>
-          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={handleDeleteClick} aria-label={`Delete ${displayName(member)}`}>
-            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-7 w-7 sm:h-8 sm:w-8" onClick={handleDeleteClick} aria-label={`Delete ${displayName(member)}`}>
+            <Trash2 className="h-3 w-3" />
             <span className="sr-only">Delete</span>
           </Button>
       </CardFooter>
@@ -249,10 +250,40 @@ export default function DiaryPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
   const { toast } = useToast();
+  const setMobileHeaderActions = useSetMobileHeaderActions();
 
   useEffect(() => {
     setIsClientLoaded(true);
   }, []);
+
+  // Effect to set mobile header actions for "Add Member"
+  useEffect(() => {
+    if (setMobileHeaderActions) {
+      const addMemberButtonDialog = (
+        <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
+          <DialogTrigger asChild>
+            <Button size="sm"> {/* Smaller button for header */}
+              <Users className="mr-2 h-4 w-4" /> Add Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <FamilyMemberForm
+              member={editingMember || undefined}
+              onSave={handleSaveMember}
+              onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }}
+            />
+          </DialogContent>
+        </Dialog>
+      );
+      setMobileHeaderActions(addMemberButtonDialog);
+    }
+    return () => {
+      if (setMobileHeaderActions) {
+        setMobileHeaderActions(null);
+      }
+    };
+  }, [setMobileHeaderActions, isMemberFormOpen, setIsMemberFormOpen, editingMember, setEditingMember, handleSaveMember]);
+
 
   const handleSaveMember = useCallback(async (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => {
     try {
@@ -422,28 +453,13 @@ export default function DiaryPage() {
             }
         />
       </div>
-      <div className="md:hidden flex justify-end mb-3">
-        <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
-            <DialogTrigger asChild>
-            <Button size="sm">
-                <Users className="mr-2 h-4 w-4" /> Add Member
-            </Button>
-            </DialogTrigger>
-            <DialogContent>
-            <FamilyMemberForm 
-                member={editingMember || undefined} 
-                onSave={handleSaveMember} 
-                onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }} 
-            />
-            </DialogContent>
-        </Dialog>
-      </div>
+      {/* Mobile "Add Member" button is now handled by AppLayout's mobileHeaderActions */}
 
 
       {!selectedMember ? (
         <>
           {familyMembers.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {familyMembers.map(member => (
                 <FamilyMemberDisplayCard 
                   key={member.id} 
@@ -461,6 +477,7 @@ export default function DiaryPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Start by adding a family member to your diary.
               </p>
+              {/* This DialogTrigger is for the button in the empty state, NOT for the header */}
               <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
                 <DialogTrigger asChild>
                   <Button className="mt-4">
