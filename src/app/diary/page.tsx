@@ -50,7 +50,7 @@ import { useAuth } from '@/context/AuthContext';
 const DEFAULT_PLACEHOLDER_AVATAR = 'https://placehold.co/100x100.png';
 
 const generateDiceBearAvatar = (seed: string) => {
-  return `https://api.dicebear.com/9.x/miniavs/svg?seed=${encodeURIComponent(seed || 'defaultUser')}`;
+  return `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(seed || 'defaultUser')}`;
 };
 
 const displayName = (member: FamilyMember | Omit<FamilyMember, 'id'> | Partial<FamilyMember>) => {
@@ -147,7 +147,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
          {(avatarUrl.startsWith('http') || avatarUrl.startsWith('data:')) && (
           <div className="grid grid-cols-4 items-center gap-4">
             <div className="col-start-2 col-span-3">
-              <img src={avatarUrl} alt="Avatar Preview" className="h-20 w-20 rounded-full object-cover border" data-ai-hint="cartoon avatar"/>
+              <img src={avatarUrl} alt="Avatar Preview" className="h-20 w-20 rounded-full object-cover border" data-ai-hint="abstract shape"/>
             </div>
           </div>
         )}
@@ -234,7 +234,7 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
     >
       <CardHeader className="items-center text-center p-1 sm:p-2">
         <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mb-1">
-          <AvatarImage src={displayAvatarUrl} alt={displayName(member)} data-ai-hint="cartoon avatar" />
+          <AvatarImage src={displayAvatarUrl} alt={displayName(member)} data-ai-hint="abstract shape" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
         <CardTitle className="text-xs sm:text-sm line-clamp-1">{displayName(member)}</CardTitle>
@@ -497,7 +497,6 @@ export default function DiaryPage() {
       if (nameMatches) return true;
 
       // Check if any of the member's notes match
-      // This requires access to all diaryNotes and filtering them per member
       const memberNotes = diaryNotes.filter(note => note.familyMemberId === member.id);
       const noteContentMatches = memberNotes.some(note =>
         note.noteText.toLowerCase().includes(lowercasedFilter)
@@ -654,7 +653,7 @@ export default function DiaryPage() {
                       ? selectedMember.avatarUrl
                       : generateDiceBearAvatar(selectedMember.realName)
                     }
-                    alt={displayName(selectedMember)} data-ai-hint="cartoon avatar" />
+                    alt={displayName(selectedMember)} data-ai-hint="abstract shape" />
                   <AvatarFallback>{avatarInitial(selectedMember)}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-base sm:text-xl md:text-2xl font-semibold truncate">{displayName(selectedMember)}'s Notes</h2>
