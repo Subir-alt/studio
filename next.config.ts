@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
         hostname: 'placehold.co', // Added for PWA icons and other placeholders
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com', // Added for DiceBear avatars
+        port: '',
+        pathname: '/**',
       }
     ],
   },

@@ -36,6 +36,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useSetMobileHeaderActions } from '@/components/layout/app-layout';
 
+const DEFAULT_PLACEHOLDER_AVATAR = 'https://placehold.co/100x100.png';
+
+const generateDiceBearAvatar = (seed: string) => {
+  return `https://api.dicebear.com/9.x/miniavs/svg?seed=${encodeURIComponent(seed || 'defaultUser')}`;
+};
+
 const displayName = (member: FamilyMember | Omit<FamilyMember, 'id'> | Partial<FamilyMember>) => {
   if ('realName' in member && member.realName) {
     return member.customName || member.realName;
@@ -53,34 +59,56 @@ interface FamilyMemberFormProps {
 function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
   const [realName, setRealName] = useState(member?.realName || '');
   const [customName, setCustomName] = useState(member?.customName || '');
-  const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl || `https://placehold.co/100x100.png`);
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    if (member?.avatarUrl && member.avatarUrl !== DEFAULT_PLACEHOLDER_AVATAR) {
+      return member.avatarUrl;
+    }
+    if (member?.realName) {
+      return generateDiceBearAvatar(member.realName);
+    }
+    return ''; // Let user input or generate on submit if still empty
+  });
   const { toast } = useToast();
 
   const handleSubmit = () => {
-    if (!realName.trim()) {
+    const trimmedRealName = realName.trim();
+    if (!trimmedRealName) {
       toast({ title: "Error", description: "Real name is required.", variant: "destructive" });
       return;
     }
     
+    let finalAvatarUrl = avatarUrl.trim();
+    if (!finalAvatarUrl || finalAvatarUrl === DEFAULT_PLACEHOLDER_AVATAR) {
+      finalAvatarUrl = generateDiceBearAvatar(trimmedRealName);
+    }
+
     const memberPayload: Partial<Omit<FamilyMember, 'id'>> = {
-      realName: realName.trim(),
-      avatarUrl: avatarUrl.trim() || `https://placehold.co/100x100.png`,
+      realName: trimmedRealName,
+      avatarUrl: finalAvatarUrl,
     };
 
     const trimmedCustomName = customName.trim();
-
-    // Handle customName explicitly: if editing and customName is cleared, set to null.
-    // If adding and customName is empty, it will be omitted.
     if (member && !trimmedCustomName) { 
       memberPayload.customName = null; 
     } else if (trimmedCustomName) { 
       memberPayload.customName = trimmedCustomName;
     }
-    // If !member (adding) and !trimmedCustomName, customName is not added to memberPayload, so it's omitted.
     
-
     onSave(memberPayload, member?.id);
   };
+  
+  // Update DiceBear avatar preview if realName changes and avatarUrl is a DiceBear URL or placeholder
+  useEffect(() => {
+    if (!member || (member && (avatarUrl.startsWith('https://api.dicebear.com') || avatarUrl === DEFAULT_PLACEHOLDER_AVATAR || !avatarUrl))) {
+      if (realName.trim()) {
+        setAvatarUrl(generateDiceBearAvatar(realName.trim()));
+      } else if (!avatarUrl) { 
+        // If realName is cleared and avatar was already a dicebear/placeholder, clear avatarUrl to let user input or regenerate on submit
+        // or keep it as is if user manually entered something
+      }
+    }
+  }, [realName, member, avatarUrl]);
+
 
   return (
     <>
@@ -98,8 +126,21 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
         </div>
          <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="avatarUrl" className="text-right">Avatar URL</Label>
-          <Input id="avatarUrl" value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} className="col-span-3" placeholder="https://placehold.co/100x100.png" />
+          <Input 
+            id="avatarUrl" 
+            value={avatarUrl} 
+            onChange={(e) => setAvatarUrl(e.target.value)} 
+            className="col-span-3" 
+            placeholder="Leave blank for an auto-generated avatar" 
+          />
         </div>
+         {avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:')) && (
+          <div className="grid grid-cols-4 items-center gap-4">
+            <div className="col-start-2 col-span-3">
+              <img src={avatarUrl} alt="Avatar Preview" className="h-20 w-20 rounded-full object-cover border" data-ai-hint="cartoon avatar"/>
+            </div>
+          </div>
+        )}
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
@@ -168,6 +209,11 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
     onDeleteMember(member.id);
   },[member.id, onDeleteMember]);
 
+  const displayAvatarUrl = 
+    (member.avatarUrl && member.avatarUrl !== DEFAULT_PLACEHOLDER_AVATAR && member.avatarUrl.startsWith('http'))
+    ? member.avatarUrl
+    : generateDiceBearAvatar(member.realName);
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-lg transition-shadow duration-200 flex flex-col"
@@ -178,7 +224,7 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
     >
       <CardHeader className="items-center text-center p-2 sm:p-3">
         <Avatar className="h-12 w-12 sm:h-16 sm:w-16 mb-1 sm:mb-2">
-          <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="emoji face" />
+          <AvatarImage src={displayAvatarUrl} alt={displayName(member)} data-ai-hint="cartoon avatar" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
         <CardTitle className="text-xs sm:text-sm line-clamp-1">{displayName(member)}</CardTitle>
@@ -508,7 +554,13 @@ export default function DiaryPage() {
               </Button>
               <div className="flex items-center gap-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={selectedMember.avatarUrl} alt={displayName(selectedMember)} data-ai-hint="emoji face" />
+                  <AvatarImage 
+                    src={
+                      (selectedMember.avatarUrl && selectedMember.avatarUrl !== DEFAULT_PLACEHOLDER_AVATAR && selectedMember.avatarUrl.startsWith('http'))
+                      ? selectedMember.avatarUrl
+                      : generateDiceBearAvatar(selectedMember.realName)
+                    } 
+                    alt={displayName(selectedMember)} data-ai-hint="cartoon avatar" />
                   <AvatarFallback>{avatarInitial(selectedMember)}</AvatarFallback>
                 </Avatar>
                 <h2 className="text-xl sm:text-2xl font-semibold">{displayName(selectedMember)}'s Notes</h2>
