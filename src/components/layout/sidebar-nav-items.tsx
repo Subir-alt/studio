@@ -1,5 +1,6 @@
+
 import type { LucideIcon } from 'lucide-react';
-import { Lightbulb, BookHeart, Users } from 'lucide-react';
+import { Lightbulb, BookHeart, CalendarClock } from 'lucide-react';
 
 export interface NavItem {
   title: string;
@@ -19,7 +20,13 @@ export const navItems: NavItem[] = [
   {
     title: 'Family Diary',
     href: '/diary',
-    icon: BookHeart, // Or Users
+    icon: BookHeart,
     label: 'Diary',
+  },
+  {
+    title: 'Reminders',
+    href: '/reminders',
+    icon: CalendarClock,
+    label: 'Reminders',
   },
 ];
