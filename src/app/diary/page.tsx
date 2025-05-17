@@ -46,7 +46,7 @@ interface FamilyMemberFormProps {
 function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
   const [realName, setRealName] = useState(member?.realName || '');
   const [customName, setCustomName] = useState(member?.customName || '');
-  const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl || `https://placehold.co/100x100.png`); // Keep placeholder
+  const [avatarUrl, setAvatarUrl] = useState(member?.avatarUrl || `https://placehold.co/100x100.png`);
   const { toast } = useToast();
 
   const handleSubmit = () => {
@@ -59,6 +59,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
       customName: customName.trim() || undefined,
       avatarUrl: avatarUrl.trim() || `https://placehold.co/100x100.png`,
     }, member?.id);
+    // onClose is called by onSave's success path
   };
 
   return (
@@ -106,6 +107,7 @@ function DiaryNoteForm({ familyMember, onSave, onClose }: DiaryNoteFormProps) {
     onSave({
       noteText: noteText.trim(),
     });
+    // onClose is called by onSave's success path
   };
 
   return (
@@ -222,6 +224,7 @@ export default function DiaryPage() {
     error: diaryNotesError 
   } = useRtdbList<DiaryNote>('diaryNotes');
   
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
   const [isMemberFormOpen, setIsMemberFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
@@ -231,25 +234,35 @@ export default function DiaryPage() {
 
   const { toast } = useToast();
 
+  useEffect(() => {
+    setIsClientLoaded(true);
+  }, []);
+
   const handleSaveMember = useCallback(async (memberData: Omit<FamilyMember, 'id'>, id?: string) => {
     try {
       if (id) { // Editing existing member
         await updateFamilyMemberInDb(id, memberData);
-        toast({ title: "Success!", description: `Family member ${memberData.realName} updated.` });
+        toast({ title: "Success!", description: `Family member ${displayName(memberData as FamilyMember)} updated.` });
       } else { // Adding new member
         await addFamilyMemberToDb(memberData);
-        toast({ title: "Success!", description: `Family member ${memberData.realName} added.` });
+        toast({ title: "Success!", description: `Family member ${displayName(memberData as FamilyMember)} added.` });
       }
       setIsMemberFormOpen(false);
       setEditingMember(null);
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to save family member.", variant: "destructive" });
-      console.error("Failed to save family member:", e);
+    } catch (e: any) {
+      let description = "Failed to save family member.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description, variant: "destructive" });
+      console.error("Failed to save family member. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast]);
 
   const handleDeleteMember = useCallback(async (memberId: string) => {
-    // Also delete associated diary notes
     const notesToDelete = diaryNotes.filter(note => note.familyMemberId === memberId);
     try {
       await Promise.all(notesToDelete.map(note => deleteDiaryNoteFromDb(note.id)));
@@ -259,9 +272,16 @@ export default function DiaryPage() {
         setSelectedMember(null);
       }
       toast({ title: "Deleted!", description: "Family member and their notes removed.", variant: "destructive" });
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to delete family member or their notes.", variant: "destructive" });
-      console.error("Failed to delete family member:", e);
+    } catch (e: any) {
+      let description = "Failed to delete family member or their notes.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description: description, variant: "destructive" });
+      console.error("Failed to delete family member or their notes. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [deleteFamilyMemberFromDb, deleteDiaryNoteFromDb, diaryNotes, selectedMember, toast]);
   
@@ -284,9 +304,16 @@ export default function DiaryPage() {
       await addDiaryNoteToDb(newNoteData);
       toast({ title: "Success!", description: "New diary note added." });
       setIsNoteFormOpen(false);
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to add note.", variant: "destructive" });
-      console.error("Failed to add note:", e);
+    } catch (e: any) {
+      let description = "Failed to add note.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description: description, variant: "destructive" });
+      console.error("Failed to add note. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [selectedMember, addDiaryNoteToDb, toast]);
 
@@ -294,9 +321,16 @@ export default function DiaryPage() {
     try {
       await deleteDiaryNoteFromDb(noteId);
       toast({ title: "Deleted!", description: "Diary note removed.", variant: "destructive" });
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to delete note.", variant: "destructive" });
-      console.error("Failed to delete note:", e);
+    } catch (e: any) {
+      let description = "Failed to delete note.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description: description, variant: "destructive" });
+      console.error("Failed to delete note. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [deleteDiaryNoteFromDb, toast]);
 
@@ -315,7 +349,7 @@ export default function DiaryPage() {
   const isLoading = familyMembersLoading || diaryNotesLoading;
   const RtdbError = familyMembersError || diaryNotesError;
 
-  if (isLoading) {
+  if (!isClientLoaded || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -484,3 +518,5 @@ export default function DiaryPage() {
     </div>
   );
 }
+
+    

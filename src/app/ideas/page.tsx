@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Lightbulb, PlusCircle, Search, Filter, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -92,6 +92,7 @@ export default function IdeasPage() {
     error: ideasError 
   } = useRtdbList<Idea>('ideas');
   
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<IdeaStatus>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -100,6 +101,10 @@ export default function IdeasPage() {
   const [newIdeaText, setNewIdeaText] = useState('');
   const [newIdeaCategory, setNewIdeaCategory] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsClientLoaded(true);
+  }, []);
 
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(ideas.map(idea => idea.category).filter(Boolean)));
@@ -150,9 +155,16 @@ export default function IdeasPage() {
       setNewIdeaCategory('');
       setIsFormOpen(false);
       toast({ title: "Success!", description: "New idea added." });
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to add idea.", variant: "destructive" });
-      console.error("Failed to add idea:", e);
+    } catch (e: any) {
+      let description = "Failed to add idea.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description, variant: "destructive" });
+      console.error("Failed to add idea. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [newIdeaText, newIdeaCategory, addIdeaToDb, toast]);
 
@@ -160,9 +172,16 @@ export default function IdeasPage() {
     try {
       await updateIdeaInDb(id, { status: currentStatus === 'pending' ? 'done' : 'pending' });
       toast({ title: "Updated!", description: "Idea status changed." });
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to update idea status.", variant: "destructive" });
-      console.error("Failed to update idea status:", e);
+    } catch (e: any) {
+      let description = "Failed to update idea status.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description, variant: "destructive" });
+      console.error("Failed to update idea status. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [updateIdeaInDb, toast]);
   
@@ -170,13 +189,20 @@ export default function IdeasPage() {
     try {
       await deleteIdeaFromDb(id);
       toast({ title: "Deleted!", description: "Idea removed.", variant: "destructive" });
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to delete idea.", variant: "destructive" });
-      console.error("Failed to delete idea:", e);
+    } catch (e: any) {
+      let description = "Failed to delete idea.";
+      if (e && e.message) {
+        description += ` Details: ${e.message.substring(0, 100)}${e.message.length > 100 ? '...' : ''}`;
+      }
+      toast({ title: "Database Error", description, variant: "destructive" });
+      console.error("Failed to delete idea. Error object:", e);
+      if (e && e.code) {
+        console.error("Firebase Error Code:", e.code);
+      }
     }
   }, [deleteIdeaFromDb, toast]);
 
-  if (ideasLoading) {
+  if (!isClientLoaded || ideasLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -369,3 +395,5 @@ export default function IdeasPage() {
     </div>
   );
 }
+
+    
