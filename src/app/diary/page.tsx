@@ -100,7 +100,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
 
     const trimmedCustomName = customName.trim();
     if (member && !trimmedCustomName) {
-      memberPayload.customName = null; // Explicitly set to null to remove it in Firebase
+      memberPayload.customName = null; 
     } else if (trimmedCustomName) {
       memberPayload.customName = trimmedCustomName;
     }
@@ -110,10 +110,11 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
   };
 
   useEffect(() => {
-    // Auto-update to DiceBear avatar if realName changes and current avatar is placeholder or DiceBear
     if (!member || (member && (avatarUrl.startsWith('https://api.dicebear.com') || avatarUrl === DEFAULT_PLACEHOLDER_AVATAR || !avatarUrl))) {
       if (realName.trim()) {
         setAvatarUrl(generateDiceBearAvatar(realName.trim()));
+      } else {
+        setAvatarUrl(''); // Clear if realName is cleared and it was auto-generated
       }
     }
   }, [realName, member, avatarUrl]);
@@ -143,7 +144,7 @@ function FamilyMemberForm({ member, onSave, onClose }: FamilyMemberFormProps) {
             placeholder="Leave blank for an auto-generated avatar"
           />
         </div>
-         {avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:')) && (
+         {(avatarUrl.startsWith('http') || avatarUrl.startsWith('data:')) && (
           <div className="grid grid-cols-4 items-center gap-4">
             <div className="col-start-2 col-span-3">
               <img src={avatarUrl} alt="Avatar Preview" className="h-20 w-20 rounded-full object-cover border" data-ai-hint="cartoon avatar"/>
@@ -304,8 +305,6 @@ export default function DiaryPage() {
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
 
-  const [instantNoteSearchTerm, setInstantNoteSearchTerm] = useState('');
-  const noteSearchTerm = useDebounce(instantNoteSearchTerm, 300);
   const [noteSortOrder, setNoteSortOrder] = useState<SortOrder>('newest');
 
   const [instantFamilySearchTerm, setInstantFamilySearchTerm] = useState('');
@@ -319,10 +318,6 @@ export default function DiaryPage() {
   const { toast } = useToast();
   const setMobileHeaderActions = useSetMobileHeaderActions();
 
-  useEffect(() => {
-    setIsClientLoaded(true);
-  }, []);
-  
   const handleSaveMember = useCallback(async (memberData: Partial<Omit<FamilyMember, 'id'>>, id?: string) => {
     if (!user) {
       toast({ title: "Authentication Error", description: "You must be logged in.", variant: "destructive" });
@@ -359,9 +354,13 @@ export default function DiaryPage() {
         console.error("Firebase Error Stack:", e.stack);
       }
     }
-  }, [addFamilyMemberToDb, updateFamilyMemberInDb, toast, editingMember, user, setIsMemberFormOpen, setEditingMember]);
+  }, [user, addFamilyMemberToDb, updateFamilyMemberInDb, toast, editingMember, setIsMemberFormOpen, setEditingMember]);
 
 
+  useEffect(() => {
+    setIsClientLoaded(true);
+  }, []);
+  
   useEffect(() => {
     if (setMobileHeaderActions) {
       const addMemberButtonDialog = (
@@ -486,30 +485,40 @@ export default function DiaryPage() {
 
   const filteredFamilyMembers = useMemo(() => {
     if (!familySearchTerm) return familyMembersFromDb;
+
     const lowercasedFilter = familySearchTerm.toLowerCase();
-    return familyMembersFromDb.filter(member =>
-      member.realName.toLowerCase().includes(lowercasedFilter) ||
-      (member.customName && member.customName.toLowerCase().includes(lowercasedFilter))
-    );
-  }, [familyMembersFromDb, familySearchTerm]);
+
+    return familyMembersFromDb.filter(member => {
+      // Check if member's name matches
+      const nameMatches =
+        member.realName.toLowerCase().includes(lowercasedFilter) ||
+        (member.customName && member.customName.toLowerCase().includes(lowercasedFilter));
+
+      if (nameMatches) return true;
+
+      // Check if any of the member's notes match
+      // This requires access to all diaryNotes and filtering them per member
+      const memberNotes = diaryNotes.filter(note => note.familyMemberId === member.id);
+      const noteContentMatches = memberNotes.some(note =>
+        note.noteText.toLowerCase().includes(lowercasedFilter)
+      );
+      return noteContentMatches;
+    });
+  }, [familyMembersFromDb, diaryNotes, familySearchTerm]);
+
 
   const notesForSelectedMember = useMemo(() => {
     if (!selectedMember) return [];
-    let filteredNotes = diaryNotes.filter(note => note.familyMemberId === selectedMember.id);
+    // Note search functionality within a selected member's notes has been removed.
+    // The global familySearchTerm handles deep searching before member selection.
+    let memberNotes = diaryNotes.filter(note => note.familyMemberId === selectedMember.id);
     
-    if (noteSearchTerm) {
-      const lowercasedNoteSearch = noteSearchTerm.toLowerCase();
-      filteredNotes = filteredNotes.filter(note => 
-        note.noteText.toLowerCase().includes(lowercasedNoteSearch)
-      );
-    }
-
-    return filteredNotes.sort((a, b) => {
+    return memberNotes.sort((a, b) => {
         const dateA = new Date(a.createdAt).getTime();
         const dateB = new Date(b.createdAt).getTime();
         return noteSortOrder === 'newest' ? dateB - dateA : dateA - dateB;
       });
-  }, [selectedMember, diaryNotes, noteSearchTerm, noteSortOrder]);
+  }, [selectedMember, diaryNotes, noteSortOrder]);
 
   const isLoading = familyMembersLoading || diaryNotesLoading;
   const RtdbError = familyMembersError || diaryNotesError;
@@ -581,11 +590,11 @@ export default function DiaryPage() {
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search family members..."
+                  placeholder="Search members or notes..."
                   value={instantFamilySearchTerm}
                   onChange={(e) => setInstantFamilySearchTerm(e.target.value)}
                   className="pl-8 w-full"
-                  aria-label="Search family members"
+                  aria-label="Search family members and their notes"
                 />
               </div>
             </CardContent>
@@ -606,7 +615,9 @@ export default function DiaryPage() {
           ) : (
             <div className="text-center py-10 rounded-lg bg-card border shadow-sm">
               <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-medium">No family members found.</h3>
+              <h3 className="mt-4 text-lg font-medium">
+                {familySearchTerm ? `No results for "${familySearchTerm}"` : "No family members yet."}
+              </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {familySearchTerm ? "Try a different search term or " : "Start by "}
                 adding a family member to your diary.
@@ -660,31 +671,23 @@ export default function DiaryPage() {
               </DialogContent>
             </Dialog>
           </div>
-
+        
+          {/* Controls for sorting notes for the selected member */}
           <Card className="shadow-sm">
-            <CardContent className="p-2 sm:p-3 md:p-4 space-y-3">
+            <CardContent className="p-2 sm:p-3 md:p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="Search notes..."
-                            value={instantNoteSearchTerm}
-                            onChange={(e) => setInstantNoteSearchTerm(e.target.value)}
-                            className="pl-8 w-full"
-                            aria-label="Search notes for selected member"
-                        />
+                    <div className="sm:col-start-2"> {/* Placeholder or align sort to right */}
+                        <Select value={noteSortOrder} onValueChange={(value) => setNoteSortOrder(value as SortOrder)}>
+                            <SelectTrigger className="w-full" aria-label="Sort notes by date">
+                                <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
+                                <SelectValue placeholder="Sort by date" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="newest">Newest First</SelectItem>
+                                <SelectItem value="oldest">Oldest First</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                    <Select value={noteSortOrder} onValueChange={(value) => setNoteSortOrder(value as SortOrder)}>
-                        <SelectTrigger className="w-full" aria-label="Sort notes by date">
-                            <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
-                            <SelectValue placeholder="Sort by date" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="newest">Newest First</SelectItem>
-                            <SelectItem value="oldest">Oldest First</SelectItem>
-                        </SelectContent>
-                    </Select>
                 </div>
             </CardContent>
           </Card>
@@ -699,12 +702,11 @@ export default function DiaryPage() {
              <div className="text-center py-10 rounded-lg bg-card border shadow-sm">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-medium">
-                {noteSearchTerm ? `No notes found for "${noteSearchTerm}"` : `No notes for ${displayName(selectedMember)} yet.`}
+                {`No notes for ${displayName(selectedMember)} yet.`}
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {noteSearchTerm ? "Try a different search term or clear the search." : `Click "Add Note" to write something down for them.`}
+                {`Click "Add Note" to write something down for them.`}
               </p>
-              {!noteSearchTerm && (
                 <Dialog open={isNoteFormOpen} onOpenChange={setIsNoteFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="mt-4">
@@ -715,7 +717,6 @@ export default function DiaryPage() {
                     <DiaryNoteForm familyMember={selectedMember} onSave={handleSaveNote} onClose={() => setIsNoteFormOpen(false)} />
                   </DialogContent>
                 </Dialog>
-              )}
             </div>
           )}
         </div>
