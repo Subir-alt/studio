@@ -172,22 +172,22 @@ const FamilyMemberDisplayCard = memo(({ member, onSelectMember, onEditMember, on
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
     >
-      <CardHeader className="items-center text-center p-4 sm:p-5">
+      <CardHeader className="items-center text-center p-3 sm:p-4">
         <Avatar className="h-16 w-16 sm:h-20 sm:w-20 mb-2">
           <AvatarImage src={member.avatarUrl} alt={displayName(member)} data-ai-hint="person portrait" />
           <AvatarFallback>{avatarInitial(member)}</AvatarFallback>
         </Avatar>
-        <CardTitle className="text-base sm:text-lg">{displayName(member)}</CardTitle>
+        <CardTitle className="text-sm sm:text-base">{displayName(member)}</CardTitle>
         {member.customName && <CardDescription className="text-xs sm:text-sm">{member.realName}</CardDescription>}
       </CardHeader>
-      <CardContent className="flex-grow px-4 sm:px-5 pb-0"></CardContent>
-      <CardFooter className="flex justify-end gap-2 p-3 sm:p-4 border-t">
+      <CardContent className="flex-grow px-3 sm:px-4 pb-0"></CardContent>
+      <CardFooter className="flex justify-end gap-1 p-2 sm:p-3 border-t">
           <Button variant="ghost" size="icon" onClick={handleEditClick} aria-label={`Edit ${displayName(member)}`}>
-            <Edit2 className="h-4 w-4" />
+            <Edit2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="sr-only">Edit</span>
           </Button>
           <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={handleDeleteClick} aria-label={`Delete ${displayName(member)}`}>
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="sr-only">Delete</span>
           </Button>
       </CardFooter>
@@ -205,12 +205,12 @@ const DiaryNoteDisplayCard = memo(({ note, onDeleteNote }: DiaryNoteDisplayCardP
   return (
     <Card className="shadow-md">
       <CardContent className="p-3 sm:p-4">
-        <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{note.noteText}</p>
-        <div className="flex justify-between items-center mt-3 pt-3 border-t">
+        <p className="whitespace-pre-wrap break-words text-sm">{note.noteText}</p>
+        <div className="flex justify-between items-center mt-2 pt-2 sm:mt-3 sm:pt-3 border-t">
             <p className="text-xs text-muted-foreground">
             {format(new Date(note.createdAt), 'MMM d, yyyy HH:mm')}
             </p>
-            <Button variant="ghost" size="sm" onClick={() => onDeleteNote(note.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm">
+            <Button variant="ghost" size="sm" onClick={() => onDeleteNote(note.id)} className="text-destructive hover:text-destructive text-xs">
                 Delete
             </Button>
         </div>
@@ -399,27 +399,46 @@ export default function DiaryPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Family Diary"
-        description="A digital memory book for your loved ones."
-        icon={BookHeart}
-        actions={
-          <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
+      <div className="hidden md:block">
+        <PageHeader
+            title="Family Diary"
+            description="A digital memory book for your loved ones."
+            icon={BookHeart}
+            actions={
+            <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
+                <DialogTrigger asChild>
+                <Button>
+                    <Users className="mr-2 h-4 w-4" /> Add Family Member
+                </Button>
+                </DialogTrigger>
+                <DialogContent>
+                <FamilyMemberForm 
+                    member={editingMember || undefined} 
+                    onSave={handleSaveMember} 
+                    onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }} 
+                />
+                </DialogContent>
+            </Dialog>
+            }
+        />
+      </div>
+      <div className="md:hidden flex justify-end mb-3">
+        <Dialog open={isMemberFormOpen} onOpenChange={(isOpen) => { setIsMemberFormOpen(isOpen); if (!isOpen) setEditingMember(null); }}>
             <DialogTrigger asChild>
-              <Button>
-                <Users className="mr-2 h-4 w-4" /> Add Family Member
-              </Button>
+            <Button size="sm">
+                <Users className="mr-2 h-4 w-4" /> Add Member
+            </Button>
             </DialogTrigger>
             <DialogContent>
-              <FamilyMemberForm 
+            <FamilyMemberForm 
                 member={editingMember || undefined} 
                 onSave={handleSaveMember} 
                 onClose={() => { setIsMemberFormOpen(false); setEditingMember(null); }} 
-              />
+            />
             </DialogContent>
-          </Dialog>
-        }
-      />
+        </Dialog>
+      </div>
+
 
       {!selectedMember ? (
         <>
@@ -544,3 +563,4 @@ export default function DiaryPage() {
     </div>
   );
 }
+

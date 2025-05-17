@@ -5,7 +5,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter }
   from 'next/navigation';
-import { Flame, LogIn, LogOut, UserCircle, Loader2, Menu } from 'lucide-react'; // Added Menu
+import { Flame, LogIn, LogOut, UserCircle, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import {
@@ -34,6 +34,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import InstallPwaButton from '@/components/pwa/InstallPwaButton';
 
+// Custom SVG Hamburger Icon
+const HamburgerIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+);
+
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,18 +52,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   React.useEffect(() => {
-    // If not loading, no user, and trying to access a protected route (i.e., not an auth page AND not the homepage)
     if (!loading && !user && !isAuthPage && pathname !== '/') {
       router.replace('/login');
     }
   }, [user, loading, pathname, router, isAuthPage]);
+
+  const activeNavItem = React.useMemo(() => {
+    return navItems.find(item => pathname.startsWith(item.href));
+  }, [pathname]);
 
 
   if (isAuthPage) {
     return <>{children}</>;
   }
   
-  // Let HomePage handle its own loading/redirect logic if path is '/'
   if (pathname !== '/') {
     if (loading) {
       return (
@@ -63,13 +74,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       );
     }
-    // If not loading, no user, and trying to access a protected route (and not the homepage)
-    // This part should ideally be covered by the useEffect redirect,
-    // but as a fallback UI while redirecting:
     if (!user) {
        React.useEffect(() => {
         router.replace('/login');
-      }, [router]);
+      }, [router]); // Added router to dependency array
       return (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="mr-2 h-12 w-12 animate-spin text-primary" />
@@ -185,11 +193,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="p-2 sm:p-3 md:p-4"> {/* Reduced padding for smallest screens */}
-        <div className="flex items-center justify-between md:hidden mb-2 sm:mb-4">
+      <SidebarInset className="p-2 sm:p-3 md:p-4">
+        <div className="flex items-center justify-start md:hidden mb-3 sm:mb-4 gap-3">
           <SidebarTrigger>
-            <Menu /> {/* Changed icon here */}
+            <HamburgerIcon />
           </SidebarTrigger>
+          {activeNavItem && (
+            <h1 className="text-lg font-semibold text-foreground truncate">
+              {activeNavItem.title}
+            </h1>
+          )}
         </div>
         {children}
         <InstallPwaButton />
@@ -197,3 +210,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
+

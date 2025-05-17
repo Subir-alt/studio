@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
-import { Lightbulb, PlusCircle, Search, Filter as FilterIcon, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react'; // Renamed Filter to FilterIcon
+import { Lightbulb, PlusCircle, Search, Filter as FilterIcon, ArrowUpDown, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 import useRtdbList from '@/hooks/use-rtdb-list';
@@ -60,18 +60,18 @@ interface IdeaItemProps {
 const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) => {
   return (
     <Card className="shadow-md hover:shadow-lg transition-shadow duration-200 flex flex-col">
-      <CardHeader className="p-3 sm:p-4"> {/* Reduced padding on mobile */}
-        <CardTitle className="text-sm sm:text-base break-words">{idea.text}</CardTitle> {/* Adjusted font size */}
-        <CardDescription className="text-xs sm:text-sm"> {/* Adjusted font size */}
+      <CardHeader className="p-3 sm:p-4">
+        <CardTitle className="text-sm sm:text-base break-words">{idea.text}</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">
           Category: <span className="font-medium text-primary">{idea.category || 'Uncategorized'}</span>
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow px-3 sm:px-4 pb-2 sm:pb-3"> {/* Reduced padding on mobile */}
+      <CardContent className="flex-grow px-3 sm:px-4 pb-2 sm:pb-3">
         <p className="text-xs text-muted-foreground">
           Created: {format(new Date(idea.createdAt), 'MMM d, yyyy HH:mm')}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-between items-center p-3 sm:p-4 pt-2 sm:pt-3 border-t"> {/* Reduced padding on mobile */}
+      <CardFooter className="flex justify-between items-center p-3 sm:p-4 pt-2 sm:pt-3 border-t">
         <div className="flex items-center space-x-2">
           <Checkbox
             id={`status-${idea.id}`}
@@ -79,11 +79,11 @@ const IdeaItem = memo(({ idea, onToggleStatus, onDeleteIdea }: IdeaItemProps) =>
             onCheckedChange={() => onToggleStatus(idea.id, idea.status)}
             aria-label={`Mark idea as ${idea.status === 'done' ? 'pending' : 'done'}`}
           />
-          <Label htmlFor={`status-${idea.id}`} className="text-xs sm:text-sm font-medium cursor-pointer"> {/* Adjusted font size */}
+          <Label htmlFor={`status-${idea.id}`} className="text-xs sm:text-sm font-medium cursor-pointer">
             {idea.status === 'done' ? 'Done' : 'Pending'}
           </Label>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onDeleteIdea(idea.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm"> {/* Adjusted font size */}
+        <Button variant="ghost" size="sm" onClick={() => onDeleteIdea(idea.id)} className="text-destructive hover:text-destructive text-xs sm:text-sm">
           Delete
         </Button>
       </CardFooter>
@@ -240,7 +240,7 @@ export default function IdeasPage() {
     );
   }
 
-  const filterControls = (inSheet: boolean = false) => (
+  const desktopFilterControls = () => (
     <>
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -253,12 +253,47 @@ export default function IdeasPage() {
           aria-label="Search ideas"
         />
       </div>
-      
+      <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as IdeaStatus)}>
+        <SelectTrigger className="w-full" aria-label="Filter by status">
+          <FilterIcon className="mr-2 h-4 w-4 inline-block" />
+          <SelectValue placeholder="Filter by status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="pending">Pending</SelectItem>
+          <SelectItem value="done">Done</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <SelectTrigger className="w-full" aria-label="Filter by category">
+          <FilterIcon className="mr-2 h-4 w-4 inline-block" />
+          <SelectValue placeholder="Filter by category" />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map(cat => (
+            <SelectItem key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+        <SelectTrigger className="w-full" aria-label="Sort by date">
+          <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
+          <SelectValue placeholder="Sort by date" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="newest">Newest First</SelectItem>
+          <SelectItem value="oldest">Oldest First</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+
+  const mobileSheetFilterControls = () => (
+    <>
       <div>
-        {inSheet && <Label htmlFor="status-filter-sheet" className="text-sm font-medium mb-1 block">Status</Label>}
+        <Label htmlFor="status-filter-sheet" className="text-sm font-medium mb-1 block">Status</Label>
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as IdeaStatus)}>
-          <SelectTrigger id={inSheet ? "status-filter-sheet" : "status-filter"} className="w-full" aria-label="Filter by status">
-            {!inSheet && <FilterIcon className="mr-2 h-4 w-4 inline-block" />}
+          <SelectTrigger id="status-filter-sheet" className="w-full" aria-label="Filter by status">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
@@ -268,12 +303,10 @@ export default function IdeasPage() {
           </SelectContent>
         </Select>
       </div>
-
       <div>
-        {inSheet && <Label htmlFor="category-filter-sheet" className="text-sm font-medium mb-1 block">Category</Label>}
+        <Label htmlFor="category-filter-sheet" className="text-sm font-medium mb-1 block">Category</Label>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger id={inSheet ? "category-filter-sheet" : "category-filter"} className="w-full" aria-label="Filter by category">
-            {!inSheet && <FilterIcon className="mr-2 h-4 w-4 inline-block" />}
+          <SelectTrigger id="category-filter-sheet" className="w-full" aria-label="Filter by category">
             <SelectValue placeholder="Filter by category" />
           </SelectTrigger>
           <SelectContent>
@@ -283,11 +316,10 @@ export default function IdeasPage() {
           </SelectContent>
         </Select>
       </div>
-      
       <div>
-        {inSheet && <Label htmlFor="sort-order-sheet" className="text-sm font-medium mb-1 block">Sort Order</Label>}
+        <Label htmlFor="sort-order-sheet" className="text-sm font-medium mb-1 block">Sort Order</Label>
         <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-          <SelectTrigger id={inSheet ? "sort-order-sheet" : "sort-order"} className="w-full" aria-label="Sort by date">
+          <SelectTrigger id="sort-order-sheet" className="w-full" aria-label="Sort by date">
             <ArrowUpDown className="mr-2 h-4 w-4 inline-block" />
             <SelectValue placeholder="Sort by date" />
           </SelectTrigger>
@@ -303,88 +335,151 @@ export default function IdeasPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Idea Tracker"
-        description="Capture and organize your brilliant ideas."
-        icon={Lightbulb}
-        actions={
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <div className="hidden md:block">
+        <PageHeader
+            title="Idea Tracker"
+            description="Capture and organize your brilliant ideas."
+            icon={Lightbulb}
+            actions={
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
+                </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Add New Idea</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="idea-text" className="text-right">
+                        Idea
+                    </Label>
+                    <Textarea
+                        id="idea-text"
+                        value={newIdeaText}
+                        onChange={(e) => setNewIdeaText(e.target.value)}
+                        className="col-span-3"
+                        placeholder="What's your new idea?"
+                        rows={3}
+                    />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="idea-category" className="text-right">
+                        Category
+                    </Label>
+                    <Input
+                        id="idea-category"
+                        value={newIdeaCategory}
+                        onChange={(e) => setNewIdeaCategory(e.target.value)}
+                        className="col-span-3"
+                        placeholder="e.g., Work, Personal (Optional)"
+                    />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleAddIdea}>Save Idea</Button>
+                </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            }
+        />
+      </div>
+       {/* Add Idea button for mobile, placed near filter/search for context */}
+      <div className="md:hidden flex justify-end mb-3">
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
-              <Button>
+            <Button size="sm">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Idea
-              </Button>
+            </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
+            <DialogHeader>
                 <DialogTitle>Add New Idea</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="idea-text" className="text-right">
+                <Label htmlFor="idea-text-mobile" className="text-right">
                     Idea
-                  </Label>
-                  <Textarea
-                    id="idea-text"
+                </Label>
+                <Textarea
+                    id="idea-text-mobile"
                     value={newIdeaText}
                     onChange={(e) => setNewIdeaText(e.target.value)}
                     className="col-span-3"
                     placeholder="What's your new idea?"
                     rows={3}
-                  />
+                />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="idea-category" className="text-right">
+                <Label htmlFor="idea-category-mobile" className="text-right">
                     Category
-                  </Label>
-                  <Input
-                    id="idea-category"
+                </Label>
+                <Input
+                    id="idea-category-mobile"
                     value={newIdeaCategory}
                     onChange={(e) => setNewIdeaCategory(e.target.value)}
                     className="col-span-3"
                     placeholder="e.g., Work, Personal (Optional)"
-                  />
+                />
                 </div>
-              </div>
-              <DialogFooter>
+            </div>
+            <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
+                <Button variant="outline">Cancel</Button>
                 </DialogClose>
                 <Button onClick={handleAddIdea}>Save Idea</Button>
-              </DialogFooter>
+            </DialogFooter>
             </DialogContent>
-          </Dialog>
-        }
-      />
+        </Dialog>
+      </div>
+
 
       <Card className="shadow-sm">
-        <CardContent className="p-3 sm:p-4"> {/* Reduced padding on mobile */}
-          {/* Desktop filters */}
-          <div className="hidden md:grid md:grid-cols-4 gap-4">
-            {filterControls(false)}
-          </div>
-          {/* Mobile filter trigger & Sheet */}
-          <div className="md:hidden">
+        <CardContent className="p-3 sm:p-4">
+          {/* Mobile: Search input always visible & Filter button */}
+          <div className="md:hidden space-y-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search ideas..."
+                value={instantSearchTerm} 
+                onChange={(e) => setInstantSearchTerm(e.target.value)} 
+                className="pl-8 w-full"
+                aria-label="Search ideas"
+              />
+            </div>
             <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" className="w-full justify-center">
                   <FilterIcon className="mr-2 h-4 w-4" />
-                  Filters & Sort
+                  Filter & Sort
                 </Button>
               </SheetTrigger>
-              <SheetContent side="bottom" className="rounded-t-lg">
-                <SheetHeader className="mb-4">
+              <SheetContent side="bottom" className="rounded-t-lg max-h-[70vh] flex flex-col">
+                <SheetHeader className="mb-2 flex-shrink-0">
                   <SheetTitle>Filter & Sort Ideas</SheetTitle>
                 </SheetHeader>
-                <div className="grid gap-4">
-                  {filterControls(true)}
+                <div className="grid gap-4 overflow-y-auto py-2 flex-grow">
+                  {mobileSheetFilterControls()}
                 </div>
-                <SheetFooter className="mt-6">
+                <SheetFooter className="mt-4 flex-shrink-0">
                   <SheetClose asChild>
                     <Button className="w-full">Done</Button>
                   </SheetClose>
                 </SheetFooter>
               </SheetContent>
             </Sheet>
+          </div>
+
+          {/* Desktop filters */}
+          <div className="hidden md:grid md:grid-cols-4 gap-4">
+            {desktopFilterControls()}
           </div>
         </CardContent>
       </Card>
@@ -452,3 +547,4 @@ export default function IdeasPage() {
     </div>
   );
 }
+
